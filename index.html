@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EIA Screening Generator</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500;6..72,600;6..72,700&family=Geist:wght@300;400;500;600;700&display=swap');
 
@@ -42,39 +41,171 @@
 .fade-in { animation: fadeIn 0.3s ease-out; }
 
 body { background: #F5F2EC; color: #0F1F1A; margin: 0; }
+#load-error { display: none; max-width: 760px; margin: 60px auto; padding: 24px; border: 1px solid #E5A89B; background: #FCE7E2; color: #8B2D1A; border-radius: 4px; font-family: system-ui, sans-serif; line-height: 1.5; }
+#load-error h2 { margin: 0 0 8px; font-size: 18px; }
+#load-error code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useMemo } = React;
+<div id="load-error">
+  <h2>The tool failed to load</h2>
+  <p>This usually means one of the CDN scripts (React, Tailwind) couldn't be reached, or the script hit a runtime error.</p>
+  <p>Open your browser's developer console (<code>F12</code> → Console tab) and share any red error messages.</p>
+  <p id="load-error-detail" style="font-family: ui-monospace, monospace; font-size: 13px; margin-top: 12px;"></p>
+</div>
+<script>
+(function () {
+  try {
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      throw new Error('React or ReactDOM did not load. Check your network connection and any browser extensions blocking CDN scripts.');
+    }
+const {
+  useState,
+  useMemo
+} = React;
 
 // ===========================
 // INLINE SVG ICONS (replacing lucide-react)
 // ===========================
-const IconBase = ({ children, size = 14, className = '' }) => (
-  React.createElement('svg', {
-    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
-    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
-    className,
-  }, children)
-);
-const X = (p) => <IconBase {...p}><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></IconBase>;
-const Check = (p) => <IconBase {...p}><polyline points="20 6 9 17 4 12"/></IconBase>;
-const ChevronDown = (p) => <IconBase {...p}><path d="m6 9 6 6 6-6"/></IconBase>;
-const ChevronRight = (p) => <IconBase {...p}><path d="m9 18 6-6-6-6"/></IconBase>;
-const Copy = (p) => <IconBase {...p}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconBase>;
-const Info = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
-const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
-const RotateCcw = (p) => <IconBase {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
-const Edit3 = (p) => <IconBase {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></IconBase>;
-const FileSearch = (p) => <IconBase {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25 15 18"/></IconBase>;
-const ListChecks = (p) => <IconBase {...p}><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></IconBase>;
-const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
-const Download = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
-// Unused but referenced in imports above (kept for compatibility)
-const ClipboardPaste = (p) => <IconBase {...p}><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></IconBase>;
-const FileText = (p) => <IconBase {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
+const IconBase = ({
+  children,
+  size = 14,
+  className = ''
+}) => React.createElement('svg', {
+  width: size,
+  height: size,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  className
+}, children);
+const X = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("line", {
+  x1: "18",
+  x2: "6",
+  y1: "6",
+  y2: "18"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "6",
+  x2: "18",
+  y1: "6",
+  y2: "18"
+}));
+const Check = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "20 6 9 17 4 12"
+}));
+const ChevronDown = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "m6 9 6 6 6-6"
+}));
+const ChevronRight = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "m9 18 6-6-6-6"
+}));
+const Copy = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("rect", {
+  width: "14",
+  height: "14",
+  x: "8",
+  y: "8",
+  rx: "2",
+  ry: "2"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+}));
+const Info = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("circle", {
+  cx: "12",
+  cy: "12",
+  r: "10"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 16v-4"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 8h.01"
+}));
+const AlertTriangle = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 9v4"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 17h.01"
+}));
+const RotateCcw = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M3 3v5h5"
+}));
+const Edit3 = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M12 20h9"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+}));
+const FileSearch = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "14 2 14 8 20 8"
+}), /*#__PURE__*/React.createElement("circle", {
+  cx: "11.5",
+  cy: "14.5",
+  r: "2.5"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M13.25 16.25 15 18"
+}));
+const ListChecks = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "m3 17 2 2 4-4"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "m3 7 2 2 4-4"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M13 6h8"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M13 12h8"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M13 18h8"
+}));
+const Plus = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M5 12h14"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M12 5v14"
+}));
+const Download = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "7 10 12 15 17 10"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  x2: "12",
+  y1: "15",
+  y2: "3"
+}));
+const ClipboardPaste = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "2",
+  width: "8",
+  height: "4",
+  rx: "1",
+  ry: "1"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+}));
+const FileText = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "14 2 14 8 20 8"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "16",
+  x2: "8",
+  y1: "13",
+  y2: "13"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "16",
+  x2: "8",
+  y1: "17",
+  y2: "17"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "10",
+  x2: "8",
+  y1: "9",
+  y2: "9"
+}));
 
 // ===========================
 // FONTS + COLORS
@@ -119,84 +250,244 @@ const FONT_CSS = `
 // ===========================
 
 const EMPTY_SENSITIVITIES = {
-  sssi: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  spa: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  sac: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  ramsar: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  nationalPark: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  aonb: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  unesco: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  conservationArea: { flag: 'unknown', nearestDistanceM: null, names: [], receptors: [] },
-  scheduledMonument: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  ancientWoodland: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  greenBelt: { flag: 'unknown' },
-  aqma: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  floodZone3: { flag: 'unknown' },
-  floodZone2: { flag: 'unknown' },
-  listedBuilding: { flag: 'unknown', nearestDistanceM: null, names: [], receptors: [] },
-  nationalNatureReserve: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  localNatureReserve: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  localWildlifeSite: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  agriculturalLand: { flag: 'unknown', grade: null },
-  registeredParkGarden: { flag: 'unknown', nearestDistanceKm: null, names: [], receptors: [] },
-  publicRightsOfWay: { flag: 'unknown' },
+  sssi: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  spa: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  sac: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  ramsar: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  nationalPark: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  aonb: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  unesco: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  conservationArea: {
+    flag: 'unknown',
+    nearestDistanceM: null,
+    names: [],
+    receptors: []
+  },
+  scheduledMonument: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  ancientWoodland: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  greenBelt: {
+    flag: 'unknown'
+  },
+  aqma: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  floodZone3: {
+    flag: 'unknown'
+  },
+  floodZone2: {
+    flag: 'unknown'
+  },
+  listedBuilding: {
+    flag: 'unknown',
+    nearestDistanceM: null,
+    names: [],
+    receptors: []
+  },
+  nationalNatureReserve: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  localNatureReserve: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  localWildlifeSite: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  agriculturalLand: {
+    flag: 'unknown',
+    grade: null
+  },
+  registeredParkGarden: {
+    flag: 'unknown',
+    nearestDistanceKm: null,
+    names: [],
+    receptors: []
+  },
+  publicRightsOfWay: {
+    flag: 'unknown'
+  }
 };
 
 // ===========================
 // THE PARSER (zero tokens — pure client-side)
 // ===========================
 
-const DESIGNATION_LABELS = [
-  { label: 'Site of Special Scientific Interest', key: 'sssi', unit: 'km' },
-  { label: 'Special Protection Area', key: 'spa', unit: 'km' },
-  { label: 'Special Area of Conservation', key: 'sac', unit: 'km' },
-  { label: 'Ramsar Wetland Site', key: 'ramsar', unit: 'km' },
-  { label: 'National Park', key: 'nationalPark', unit: 'km' },
-  { label: 'Area of Outstanding Natural Beauty', key: 'aonb', unit: 'km' },
-  { label: 'UNESCO World Heritage Site', key: 'unesco', unit: 'km' },
-  { label: 'Conservation Area', key: 'conservationArea', unit: 'm' },
-  { label: 'Scheduled Monument', key: 'scheduledMonument', unit: 'km' },
-  { label: 'Ancient Woodland', key: 'ancientWoodland', unit: 'km' },
-  { label: 'Green Belt', key: 'greenBelt', onSiteOnly: true },
-  { label: 'Air Quality Management Area', key: 'aqma', unit: 'km' },
-  { label: 'Flood Zone 3 (High Risk)', key: 'floodZone3', onSiteOnly: true },
-  { label: 'Flood Zone 2 (Medium Risk)', key: 'floodZone2', onSiteOnly: true },
-  { label: 'Listed Building', key: 'listedBuilding', unit: 'm' },
-  { label: 'National Nature Reserve', key: 'nationalNatureReserve', unit: 'km' },
-  { label: 'Local Nature Reserve', key: 'localNatureReserve', unit: 'km' },
-  { label: 'Local Wildlife Site / SINC', key: 'localWildlifeSite', unit: 'km' },
-  { label: 'Agricultural Land Classification (Grades 1\u20133)', key: 'agriculturalLand', special: 'agland' },
-  { label: 'Registered Park and Garden', key: 'registeredParkGarden', unit: 'km' },
-  { label: 'Public Rights of Way', key: 'publicRightsOfWay', special: 'prow' },
-];
-
-const SKIP_TOKENS = new Set([
-  'Designation', 'Nearest distance', 'Flag', 'Status',
-  'Regulation 2(1) Proximity Detail',
-  'Additional Environmental Designations Detail',
-  'Data Quality Notes',
-]);
-
-const BEARINGS = { N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' };
-
-const isDistance = (s) => /^[\d.]+\s*(km|m)$/i.test(s.trim());
-const isBearing = (s) => Object.prototype.hasOwnProperty.call(BEARINGS, s.trim().toUpperCase()) && s.trim().length <= 2;
-const isIndex = (s) => /^\d+\.$/.test(s.trim());
-
-function parseKm(s) { const m = s.trim().match(/^([\d.]+)\s*(km|m)$/i); if (!m) return null; const v = parseFloat(m[1]); return m[2].toLowerCase() === 'm' ? v / 1000 : v; }
-function parseM(s) { const km = parseKm(s); return km == null ? null : Math.round(km * 1000); }
-function normDist(s) { return s.replace(/([\d.]+)\s*(km|m)/i, '$1 $2'); }
+const DESIGNATION_LABELS = [{
+  label: 'Site of Special Scientific Interest',
+  key: 'sssi',
+  unit: 'km'
+}, {
+  label: 'Special Protection Area',
+  key: 'spa',
+  unit: 'km'
+}, {
+  label: 'Special Area of Conservation',
+  key: 'sac',
+  unit: 'km'
+}, {
+  label: 'Ramsar Wetland Site',
+  key: 'ramsar',
+  unit: 'km'
+}, {
+  label: 'National Park',
+  key: 'nationalPark',
+  unit: 'km'
+}, {
+  label: 'Area of Outstanding Natural Beauty',
+  key: 'aonb',
+  unit: 'km'
+}, {
+  label: 'UNESCO World Heritage Site',
+  key: 'unesco',
+  unit: 'km'
+}, {
+  label: 'Conservation Area',
+  key: 'conservationArea',
+  unit: 'm'
+}, {
+  label: 'Scheduled Monument',
+  key: 'scheduledMonument',
+  unit: 'km'
+}, {
+  label: 'Ancient Woodland',
+  key: 'ancientWoodland',
+  unit: 'km'
+}, {
+  label: 'Green Belt',
+  key: 'greenBelt',
+  onSiteOnly: true
+}, {
+  label: 'Air Quality Management Area',
+  key: 'aqma',
+  unit: 'km'
+}, {
+  label: 'Flood Zone 3 (High Risk)',
+  key: 'floodZone3',
+  onSiteOnly: true
+}, {
+  label: 'Flood Zone 2 (Medium Risk)',
+  key: 'floodZone2',
+  onSiteOnly: true
+}, {
+  label: 'Listed Building',
+  key: 'listedBuilding',
+  unit: 'm'
+}, {
+  label: 'National Nature Reserve',
+  key: 'nationalNatureReserve',
+  unit: 'km'
+}, {
+  label: 'Local Nature Reserve',
+  key: 'localNatureReserve',
+  unit: 'km'
+}, {
+  label: 'Local Wildlife Site / SINC',
+  key: 'localWildlifeSite',
+  unit: 'km'
+}, {
+  label: 'Agricultural Land Classification (Grades 1\u20133)',
+  key: 'agriculturalLand',
+  special: 'agland'
+}, {
+  label: 'Registered Park and Garden',
+  key: 'registeredParkGarden',
+  unit: 'km'
+}, {
+  label: 'Public Rights of Way',
+  key: 'publicRightsOfWay',
+  special: 'prow'
+}];
+const SKIP_TOKENS = new Set(['Designation', 'Nearest distance', 'Flag', 'Status', 'Regulation 2(1) Proximity Detail', 'Additional Environmental Designations Detail', 'Data Quality Notes']);
+const BEARINGS = {
+  N: 'north',
+  NE: 'north-east',
+  E: 'east',
+  SE: 'south-east',
+  S: 'south',
+  SW: 'south-west',
+  W: 'west',
+  NW: 'north-west'
+};
+const isDistance = s => /^[\d.]+\s*(km|m)$/i.test(s.trim());
+const isBearing = s => Object.prototype.hasOwnProperty.call(BEARINGS, s.trim().toUpperCase()) && s.trim().length <= 2;
+const isIndex = s => /^\d+\.$/.test(s.trim());
+function parseKm(s) {
+  const m = s.trim().match(/^([\d.]+)\s*(km|m)$/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  return m[2].toLowerCase() === 'm' ? v / 1000 : v;
+}
+function parseM(s) {
+  const km = parseKm(s);
+  return km == null ? null : Math.round(km * 1000);
+}
+function normDist(s) {
+  return s.replace(/([\d.]+)\s*(km|m)/i, '$1 $2');
+}
 
 // Title-case names that arrive entirely in capitals (e.g. NNR / Historic England
 // registers), leaving already-mixed-case names like "Epping Forest SSSI" untouched.
 function tidyName(n) {
   if (/[a-z]/.test(n) || !/[A-Z]/.test(n)) return n;
   const small = new Set(['of', 'and', 'the', 'on', 'in', 'at', 'to', 'a']);
-  return n.toLowerCase().split(/\s+/)
-    .map((w, i) => (i > 0 && small.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  return n.toLowerCase().split(/\s+/).map((w, i) => i > 0 && small.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
-
 function detectFlag(tokens) {
   const j = tokens.join(' | ');
   if (/On site/i.test(j)) return 'on_site';
@@ -207,15 +498,16 @@ function detectFlag(tokens) {
   if (/Loaded automatically/i.test(j)) return 'unknown';
   return 'unknown';
 }
-
 function parseProximityText(text) {
   const rawTokens = text.split(/[\n\t]+/).map(t => t.trim()).filter(Boolean);
   const blocks = {};
   let current = null;
-  const labelByToken = (tok) => DESIGNATION_LABELS.find(d => tok === d.label || tok.startsWith(d.label));
-
+  const labelByToken = tok => DESIGNATION_LABELS.find(d => tok === d.label || tok.startsWith(d.label));
   for (const tok of rawTokens) {
-    if (SKIP_TOKENS.has(tok)) { if (tok === 'Data Quality Notes') current = null; continue; }
+    if (SKIP_TOKENS.has(tok)) {
+      if (tok === 'Data Quality Notes') current = null;
+      continue;
+    }
     const match = labelByToken(tok);
     if (match) {
       current = match.key;
@@ -227,50 +519,75 @@ function parseProximityText(text) {
     if (/^[\u26a0\u2139]/.test(tok)) continue; // skip ⚠ / ℹ note lines
     if (current) blocks[current].push(tok);
   }
-
   const result = JSON.parse(JSON.stringify(EMPTY_SENSITIVITIES));
   let matched = 0;
-
   for (const def of DESIGNATION_LABELS) {
     const toks = blocks[def.key];
     if (!toks) continue; // not present in paste — leave as 'unknown'
     matched++;
     const flag = detectFlag(toks);
-
     if (def.special === 'agland') {
       const g = toks.find(t => /Grade\s*\d/i.test(t));
       const grade = g ? (g.match(/Grade\s*\d+[ab]?/i) || [])[0] : null;
-      result.agriculturalLand = { flag, grade: grade || null };
+      result.agriculturalLand = {
+        flag,
+        grade: grade || null
+      };
       continue;
     }
-    if (def.special === 'prow') { result.publicRightsOfWay = { flag }; continue; }
-    if (def.onSiteOnly) { result[def.key] = { flag }; continue; }
-
+    if (def.special === 'prow') {
+      result.publicRightsOfWay = {
+        flag
+      };
+      continue;
+    }
+    if (def.onSiteOnly) {
+      result[def.key] = {
+        flag
+      };
+      continue;
+    }
     const clean = toks.filter(t => !isIndex(t) && !/^Within |^Not detected|^Not found|^On site|^Loaded automatically/i.test(t));
-    let nearest = null, i = 0;
+    let nearest = null,
+      i = 0;
     const receptors = [];
-    if (clean.length && isDistance(clean[0])) { nearest = clean[0]; i = 1; }
+    if (clean.length && isDistance(clean[0])) {
+      nearest = clean[0];
+      i = 1;
+    }
     while (i < clean.length) {
-      const name = clean[i], bearing = clean[i + 1], dist = clean[i + 2];
+      const name = clean[i],
+        bearing = clean[i + 1],
+        dist = clean[i + 2];
       if (name && bearing && dist && isBearing(bearing) && isDistance(dist) && !isDistance(name)) {
         receptors.push({
-          name: tidyName(name), bearing: bearing.toUpperCase(), bearingWord: BEARINGS[bearing.toUpperCase()],
-          distanceText: normDist(dist), distanceKm: parseKm(dist),
+          name: tidyName(name),
+          bearing: bearing.toUpperCase(),
+          bearingWord: BEARINGS[bearing.toUpperCase()],
+          distanceText: normDist(dist),
+          distanceKm: parseKm(dist)
         });
         i += 3;
-      } else { i += 1; }
+      } else {
+        i += 1;
+      }
     }
     if (!nearest && receptors.length) {
       const m = receptors.reduce((a, b) => (a.distanceKm ?? 1e9) < (b.distanceKm ?? 1e9) ? a : b);
       nearest = m.distanceText;
     }
-    const entry = { flag, names: receptors.map(r => r.name), receptors };
-    if (def.unit === 'm') entry.nearestDistanceM = nearest ? parseM(nearest) : null;
-    else entry.nearestDistanceKm = nearest ? parseKm(nearest) : null;
+    const entry = {
+      flag,
+      names: receptors.map(r => r.name),
+      receptors
+    };
+    if (def.unit === 'm') entry.nearestDistanceM = nearest ? parseM(nearest) : null;else entry.nearestDistanceKm = nearest ? parseKm(nearest) : null;
     result[def.key] = entry;
   }
-
-  return { result, matched };
+  return {
+    result,
+    matched
+  };
 }
 
 // Demo text (the Waltham Abbey paste, token-normalised)
@@ -454,28 +771,36 @@ function toCamelCase(snake) {
   const parts = snake.toLowerCase().split('_');
   return parts[0] + parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('');
 }
-
 function renderPlaceholderText(text, dev) {
   if (!text) return null;
   const parts = [];
   const re = /\{\{([A-Z0-9_]+)\}\}/g;
-  let lastIdx = 0, match, i = 0;
+  let lastIdx = 0,
+    match,
+    i = 0;
   while ((match = re.exec(text)) !== null) {
-    if (match.index > lastIdx) parts.push(<span key={`t-${i++}`}>{text.slice(lastIdx, match.index)}</span>);
+    if (match.index > lastIdx) parts.push(/*#__PURE__*/React.createElement("span", {
+      key: `t-${i++}`
+    }, text.slice(lastIdx, match.index)));
     const key = match[1];
     const value = dev[toCamelCase(key)];
     if (value && String(value).trim()) {
-      parts.push(<span key={`f-${i++}`} className="filled-text">{value}</span>);
+      parts.push(/*#__PURE__*/React.createElement("span", {
+        key: `f-${i++}`,
+        className: "filled-text"
+      }, value));
     } else {
-      parts.push(
-        <span key={`p-${i++}`} className="placeholder-pill font-mono" title={`Placeholder: ${key}`}>
-          {key.replace(/_/g, ' ').toLowerCase()}
-        </span>
-      );
+      parts.push(/*#__PURE__*/React.createElement("span", {
+        key: `p-${i++}`,
+        className: "placeholder-pill font-mono",
+        title: `Placeholder: ${key}`
+      }, key.replace(/_/g, ' ').toLowerCase()));
     }
     lastIdx = re.lastIndex;
   }
-  if (lastIdx < text.length) parts.push(<span key={`t-${i++}`}>{text.slice(lastIdx)}</span>);
+  if (lastIdx < text.length) parts.push(/*#__PURE__*/React.createElement("span", {
+    key: `t-${i++}`
+  }, text.slice(lastIdx)));
   return parts;
 }
 
@@ -492,17 +817,18 @@ function nearestReceptor(s) {
 
 // "Epping Forest SSSI (approximately 1.1 km to the south-east of the Site)"
 // Falls back to nearest distance if no named receptors.
-function describeNearest(s, designationWord, { skipNumericName = true } = {}) {
+function describeNearest(s, designationWord, {
+  skipNumericName = true
+} = {}) {
   const r = nearestReceptor(s);
   if (r) {
     const named = !(skipNumericName && /^\d+$/.test(r.name));
     return `the nearest ${designationWord}${named ? ` (${r.name})` : ''} lies approximately ${r.distanceText} to the ${r.bearingWord} of the Site`;
   }
-  const d = s.nearestDistanceM != null ? `${s.nearestDistanceM} m` : (s.nearestDistanceKm != null ? `${s.nearestDistanceKm} km` : null);
+  const d = s.nearestDistanceM != null ? `${s.nearestDistanceM} m` : s.nearestDistanceKm != null ? `${s.nearestDistanceKm} km` : null;
   if (d) return `the nearest ${designationWord} lies approximately ${d} from the Site`;
   return null;
 }
-
 function aqBaseline(sens) {
   const a = sens.aqma;
   const r = nearestReceptor(a);
@@ -517,12 +843,14 @@ function aqBaseline(sens) {
   }
   return `The Site does not lie within an Air Quality Management Area (AQMA); the nearest AQMA is located beyond 5 km of the Site.`;
 }
-
 function ecologicalDesignationsNote(sens) {
   const bits = [];
   const add = (key, word) => {
     const s = sens[key];
-    if (s.flag === 'on_site') { bits.push(`the Site lies on or directly adjacent to a ${word}`); return; }
+    if (s.flag === 'on_site') {
+      bits.push(`the Site lies on or directly adjacent to a ${word}`);
+      return;
+    }
     if (['within_1km', 'within_5km', 'within_search_area'].includes(s.flag)) {
       const d = describeNearest(s, word);
       if (d) bits.push(d);
@@ -542,7 +870,6 @@ function ecologicalDesignationsNote(sens) {
   const joined = bits.join('; ');
   return `In terms of ecological designations, ${joined}.`;
 }
-
 function conservationAreaNote(sens) {
   const ca = sens.conservationArea;
   if (ca.flag === 'on_site') {
@@ -553,7 +880,6 @@ function conservationAreaNote(sens) {
   if (ca.flag === 'within_1km' && d) return `For built heritage, ${d}.`;
   return `There are no Conservation Areas in immediate proximity to the Site.`;
 }
-
 function listedBuildingNote(sens) {
   const lb = sens.listedBuilding;
   if (lb.flag === 'on_site') return `The Site contains, or directly abuts, a listed building, the setting of which is a primary design consideration.`;
@@ -568,27 +894,32 @@ function listedBuildingNote(sens) {
   if (lb.nearestDistanceM != null) return `The nearest listed building lies approximately ${lb.nearestDistanceM} m from the Site.`;
   return `No listed buildings have been identified within 1 km of the Site.`;
 }
-
 function scheduledMonumentNote(sens) {
   const sm = sens.scheduledMonument;
   const d = describeNearest(sm, 'Scheduled Monument');
   if (['within_1km', 'within_5km'].includes(sm.flag) && d) return `${d.charAt(0).toUpperCase()}${d.slice(1)}.`;
   return `No Scheduled Monuments have been identified within 5 km of the Site.`;
 }
-
 function registeredParkGardenNote(sens) {
   const rpg = sens.registeredParkGarden;
   const d = describeNearest(rpg, 'Registered Park and Garden');
   if (['within_1km', 'within_5km'].includes(rpg.flag) && d) return `${d.charAt(0).toUpperCase()}${d.slice(1)}.`;
   return `No Registered Parks and Gardens have been identified within 5 km of the Site.`;
 }
-
 function floodZoneNote(sens) {
-  if (sens.floodZone3.flag === 'on_site') return { zone: 'Flood Zone 3 (high probability of fluvial flooding)', risk: 'a high probability of flooding from rivers and the sea; this raises material considerations for the FRA and the application of the Sequential and Exception Tests' };
-  if (sens.floodZone2.flag === 'on_site') return { zone: 'Flood Zone 2 (medium probability of fluvial flooding)', risk: 'a medium probability of flooding from rivers and the sea' };
-  return { zone: 'Flood Zone 1', risk: 'a low probability of fluvial flooding' };
+  if (sens.floodZone3.flag === 'on_site') return {
+    zone: 'Flood Zone 3 (high probability of fluvial flooding)',
+    risk: 'a high probability of flooding from rivers and the sea; this raises material considerations for the FRA and the application of the Sequential and Exception Tests'
+  };
+  if (sens.floodZone2.flag === 'on_site') return {
+    zone: 'Flood Zone 2 (medium probability of fluvial flooding)',
+    risk: 'a medium probability of flooding from rivers and the sea'
+  };
+  return {
+    zone: 'Flood Zone 1',
+    risk: 'a low probability of fluvial flooding'
+  };
 }
-
 function townscapeContext(sens) {
   const bits = [];
   if (sens.greenBelt.flag === 'on_site') bits.push('the Metropolitan Green Belt');
@@ -613,8 +944,9 @@ function listDocs(docs) {
   if (cleaned.length === 2) return `${article} ${cleaned[0]} and ${cleaned[1]}`;
   return `${article} ${cleaned.slice(0, -1).join(', ')} and ${cleaned[cleaned.length - 1]}`;
 }
-
-function capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function capFirst(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
 
 // Development-type variant catalogue. Each key is a sentence-or-clause "slot" used by
 // one of the topic templates; each slot has a per-type phrasing plus a `default` fallback.
@@ -632,7 +964,7 @@ const TYPE_VARIANTS = {
     healthcare: "improve local access to healthcare services and contribute positively to {{LOCAL_AUTHORITY}}'s social infrastructure provision",
     'energy infrastructure': "contribute positively to national energy security and {{LOCAL_AUTHORITY}}'s climate and infrastructure objectives, alongside construction-phase employment",
     'transport infrastructure': "contribute positively to local connectivity and accessibility, supporting {{LOCAL_AUTHORITY}}'s transport and economic strategy",
-    default: "contribute positively to {{LOCAL_AUTHORITY}}'s strategic objectives",
+    default: "contribute positively to {{LOCAL_AUTHORITY}}'s strategic objectives"
   },
   socioOperational: {
     residential: "In operation, additional resident expenditure and any incremental demand on social infrastructure (education, healthcare) would be addressed through Community Infrastructure Levy and/or a Section 106 agreement.",
@@ -645,9 +977,8 @@ const TYPE_VARIANTS = {
     healthcare: "In operation, the Development would improve healthcare access for residents within the catchment area, with associated employment and supplier-chain effects; any infrastructure contributions would be addressed through Community Infrastructure Levy and/or a Section 106 agreement.",
     'energy infrastructure': "In operation, on-site employment would be limited; benefits relate to the Development's contribution to wider energy resilience and decarbonisation.",
     'transport infrastructure': "In operation, the Development would improve connectivity for surrounding communities, with associated accessibility and economic effects.",
-    default: "In operation, the Development would generate positive secondary economic effects locally, with any infrastructure contributions addressed through Community Infrastructure Levy and/or a Section 106 agreement.",
+    default: "In operation, the Development would generate positive secondary economic effects locally, with any infrastructure contributions addressed through Community Infrastructure Levy and/or a Section 106 agreement."
   },
-
   // ---- naturalresources ----
   natResEnergyWater: {
     residential: "During operation, energy and water consumption would be consistent with similar developments and would not involve water- or energy-intensive processes.",
@@ -660,7 +991,7 @@ const TYPE_VARIANTS = {
     healthcare: "During operation, energy and water consumption would be relatively high reflecting the 24/7 nature of the facility, with efficiency measures applied in line with NHS Sustainable Development Unit guidance.",
     'energy infrastructure': "During operation, the Development's own energy and water consumption is minimal; for generation infrastructure, the facility contributes positively to wider energy supply.",
     'transport infrastructure': "During operation, on-site energy and water consumption is minimal, limited to lighting, signalling and similar ancillary functions.",
-    default: "During operation, energy and water consumption would be consistent with similar developments.",
+    default: "During operation, energy and water consumption would be consistent with similar developments."
   },
   natResWaste: {
     residential: "Operational waste streams would not be hazardous, with management requirements met in line with BS 5906:2005 and the {{LOCAL_WASTE_MINERALS_PLAN}}.",
@@ -673,9 +1004,8 @@ const TYPE_VARIANTS = {
     healthcare: "Operational waste streams include segregated clinical waste managed via licensed contractors in line with HTM 07-01, alongside standard municipal waste under BS 5906:2005 and the {{LOCAL_WASTE_MINERALS_PLAN}}.",
     'energy infrastructure': "Operational waste streams are minimal during normal operation; decommissioning materials (transformer oils, battery cells or similar) would be managed under their respective regulatory regimes in line with the {{LOCAL_WASTE_MINERALS_PLAN}}.",
     'transport infrastructure': "Operational waste arisings are limited to periodic maintenance and managed in line with the {{LOCAL_WASTE_MINERALS_PLAN}}.",
-    default: "Operational waste streams would be managed in line with BS 5906:2005 and the {{LOCAL_WASTE_MINERALS_PLAN}}.",
+    default: "Operational waste streams would be managed in line with BS 5906:2005 and the {{LOCAL_WASTE_MINERALS_PLAN}}."
   },
-
   // ---- transport ----
   transportOperational: {
     residential: "The Development is {{CAR_PARKING_STRATEGY}}, with cycle parking provided in line with relevant standards and a Travel Plan proposed to support mode shift. It is anticipated that the greatest change will be in the number of pedestrians, cyclists and public transport users, which the existing network is considered to have sufficient capacity to support.",
@@ -688,9 +1018,8 @@ const TYPE_VARIANTS = {
     healthcare: "Operational trip generation comprises patient, visitor and staff movements with a defined peak pattern, ambulance access (where relevant), and goods and waste deliveries. The Development is {{CAR_PARKING_STRATEGY}}, with cycle parking and EV charging provided in line with relevant standards and a Travel Plan proposed to support staff mode shift.",
     'energy infrastructure': "Operational trip generation is minimal, comprising periodic maintenance and inspection visits. The Development is {{CAR_PARKING_STRATEGY}}; ongoing vehicular movements would not be significant once commissioned.",
     'transport infrastructure': "The Development constitutes transport infrastructure in itself; net effects on the wider highway network are a function of the modal hierarchy and connectivity benefits delivered, addressed within the broader transport assessment supporting the application.",
-    default: "The Development is {{CAR_PARKING_STRATEGY}}, with cycle parking provided in line with relevant standards and a Travel Plan proposed to support mode shift.",
+    default: "The Development is {{CAR_PARKING_STRATEGY}}, with cycle parking provided in line with relevant standards and a Travel Plan proposed to support mode shift."
   },
-
   // ---- airquality ----
   airqOperational: {
     residential: "Once operational, road traffic associated with the Development would be limited, and emissions are unlikely to be significant. The Development will be served by a fully electric heating and hot water strategy with no gas-fired plant, materially reducing local combustion emissions.",
@@ -703,9 +1032,8 @@ const TYPE_VARIANTS = {
     healthcare: "Once operational, building services and standby medical-resilience generators are the primary on-site emission sources, with the latter operating only for periodic testing and emergency use. Where clinical waste incineration is proposed, it would be controlled under the Environmental Permitting Regulations.",
     'energy infrastructure': "Once operational, on-site emissions would be limited; characteristics depend on the specific technology and would, where relevant, be assessed under separate consenting regimes (e.g. environmental permits for combustion plant, SF6 reporting for high-voltage equipment).",
     'transport infrastructure': "Once operational, vehicle emissions inherent to the transport use are the primary on-going air quality consideration and are quantified separately within the transport-related air quality assessment supporting the application.",
-    default: "Once operational, road traffic associated with the Development would be limited, and emissions are unlikely to be significant.",
+    default: "Once operational, road traffic associated with the Development would be limited, and emissions are unlikely to be significant."
   },
-
   // ---- noise ----
   noiseOperational: {
     residential: "Operational noise sources would be limited, with any required plant designed and located to meet acceptable thresholds.",
@@ -718,9 +1046,8 @@ const TYPE_VARIANTS = {
     healthcare: "Operational noise sources include ambulance arrivals (where relevant), building services plant, periodic backup generator testing, and helipad activity (where present), with mitigation designed to meet acceptable thresholds at the nearest sensitive receptors.",
     'energy infrastructure': "Operational noise sources include inverters, transformers and any cooling fans, with mitigation (plant selection, acoustic enclosures, screening) designed to meet acceptable thresholds at the nearest sensitive receptors, assessed under BS 4142:2014+A1:2019.",
     'transport infrastructure': "Operational noise is inherent to the transport use itself and is quantified separately within the transport-related noise assessment supporting the application.",
-    default: "Operational noise sources would be limited, with any required plant designed and located to meet acceptable thresholds.",
+    default: "Operational noise sources would be limited, with any required plant designed and located to meet acceptable thresholds."
   },
-
   // ---- groundconditions ----
   groundOperational: {
     residential: "On completion, buildings, hardstanding and landscaping would further reduce exposure pathways.",
@@ -733,9 +1060,8 @@ const TYPE_VARIANTS = {
     healthcare: "On completion, buildings, hardstanding and landscaping would further reduce exposure pathways, with particular care where historic medical activities (e.g. former hospitals) are relevant to the Site history.",
     'energy infrastructure': "Operational ground-condition risks relate primarily to transformer oil containment, battery storage (for BESS) and similar; these are addressed through bunded enclosures and emergency spill containment alongside completion of standard cover systems.",
     'transport infrastructure': "Given the linear nature of transport infrastructure, geotechnical conditions along the alignment have been characterised parcel-by-parcel, with contamination risk addressed locally where present; the operational use does not introduce significant ongoing contamination pathways beyond standard fuel/oil management.",
-    default: "On completion, buildings, hardstanding and landscaping would further reduce exposure pathways.",
+    default: "On completion, buildings, hardstanding and landscaping would further reduce exposure pathways."
   },
-
   // ---- waterenvironment ----
   waterOperational: {
     residential: "The Development will modestly increase potable water demand and foul water discharge; these are not expected to give rise to significant effects given established utility capacity.",
@@ -748,9 +1074,8 @@ const TYPE_VARIANTS = {
     healthcare: "The Development will increase potable water demand and foul water discharge reflecting the 24/7 nature of the facility; clinical and laboratory drainage (where present) is segregated and treated in accordance with HBN guidance prior to discharge.",
     'energy infrastructure': "On-site water demand is minimal during normal operation; surface water drainage and pollution control are managed through bunded enclosures and oil-water interceptors where transformers, batteries or fuel storage are present.",
     'transport infrastructure': "Highway/transport drainage incorporates pollution-control measures (silt traps, oil interceptors) to manage runoff quality, with discharge agreed with the relevant drainage authority and the Environment Agency where appropriate.",
-    default: "The Development will modestly increase potable water demand and foul water discharge; these are not expected to give rise to significant effects given established utility capacity.",
+    default: "The Development will modestly increase potable water demand and foul water discharge; these are not expected to give rise to significant effects given established utility capacity."
   },
-
   // ---- biodiversity ----
   biodivCharacter: {
     residential: "Given the {{DEVELOPMENT_TYPE_LOWER}} character of the Site and its separation from designated ecological features, the potential for ecological effects arising from the Development is inherently limited.",
@@ -763,9 +1088,8 @@ const TYPE_VARIANTS = {
     healthcare: "Given the {{DEVELOPMENT_TYPE_LOWER}} character of the Site and its separation from designated ecological features, the potential for ecological effects arising from the Development is inherently limited.",
     'energy infrastructure': "Linear or compound infrastructure of this character can affect ecological features along its alignment or in its catchment; effects on designated and non-statutory sites will be addressed through proportionate survey and mitigation, including specific consideration of bird collision risk and electrical hazard to wildlife where relevant.",
     'transport infrastructure': "Linear infrastructure of this character can affect ecological features along its alignment, including severance and habitat fragmentation; effects on designated and non-statutory sites will be addressed through proportionate survey, mitigation (e.g. green bridges, culverts), and connectivity restoration where required.",
-    default: "Given the character of the Site and its separation from designated ecological features, the potential for ecological effects arising from the Development is inherently limited.",
+    default: "Given the character of the Site and its separation from designated ecological features, the potential for ecological effects arising from the Development is inherently limited."
   },
-
   // ---- townscape ----
   townscapeForm: {
     residential: "The proposed scale and composition has been designed to respond to the local context and reinstate active frontage, contributing positively to local legibility and wayfinding.",
@@ -778,9 +1102,8 @@ const TYPE_VARIANTS = {
     healthcare: "The proposed scale and composition reflects the institutional character of healthcare facilities, designed to respond to the local context with clear wayfinding and high-quality public realm.",
     'energy infrastructure': "The technical character of the Development has been mitigated through compound design, screening planting and selection of low-reflectivity materials, with sensitive views considered at design stage.",
     'transport infrastructure': "The Development comprises linear transport infrastructure; visual integration is delivered through sensitive design of structures, landscape-led mitigation along the alignment, and screening where appropriate.",
-    default: "The proposed scale and composition has been designed to respond to the local context, contributing positively to local legibility and wayfinding.",
+    default: "The proposed scale and composition has been designed to respond to the local context, contributing positively to local legibility and wayfinding."
   },
-
   // ---- lightglare ----
   lightOpening: {
     residential: "The Site is located within an established setting and the Development is not of a scale or nature likely to give rise to significant light pollution.",
@@ -793,9 +1116,8 @@ const TYPE_VARIANTS = {
     healthcare: "External lighting is required across extended operating hours for safe access, ambulance bays (where present) and security; design balances operational safety requirements against minimisation of spill to surrounding receptors.",
     'energy infrastructure': "External lighting is limited to security and operational access requirements; design will minimise spill, apply directional luminaires and use curfew controls outside core operational periods.",
     'transport infrastructure': "External lighting comprises route, junction and signal lighting inherent to the transport use, designed in accordance with relevant ILP and DfT standards to minimise spill to surrounding receptors.",
-    default: "The Site is located within an established setting and the Development is not of a scale or nature likely to give rise to significant light pollution.",
+    default: "The Site is located within an established setting and the Development is not of a scale or nature likely to give rise to significant light pollution."
   },
-
   // ---- climate ----
   climateOperational: {
     residential: "The Development will not give rise to significant greenhouse gas emissions due to its scale, with no significant uplift in road traffic associated with the Site.",
@@ -808,9 +1130,8 @@ const TYPE_VARIANTS = {
     healthcare: "The Development's operational greenhouse gas emissions reflect 24/7 facility energy use, with efficiency, electric heating where clinically feasible, and renewable electricity procurement applied in line with the NHS Net Zero strategy.",
     'energy infrastructure': "The Development's operational greenhouse gas impact depends on the technology: renewable generation or energy storage contributes positively through displacement of fossil generation, with embodied carbon addressed through Whole Life-Cycle Carbon assessment.",
     'transport infrastructure': "The Development's operational greenhouse gas profile reflects the transport use it supports; modal shift and decarbonisation benefits (where delivered) are quantified separately within the transport-related carbon assessment.",
-    default: "The Development will not give rise to significant greenhouse gas emissions due to its scale.",
+    default: "The Development will not give rise to significant greenhouse gas emissions due to its scale."
   },
-
   // ---- majoraccidents ----
   majorAccidents: {
     residential: "There are no Control of Major Accident Hazards (COMAH) regulated installations within or close to the Site. Construction and operation would follow applicable health and safety legislation and standard industry practice, and the proposed {{DEVELOPMENT_TYPE_LOWER}} uses do not involve hazardous substances or unusual technologies. The risk of major accidents or disasters is low and no likely significant effects are anticipated.",
@@ -823,9 +1144,8 @@ const TYPE_VARIANTS = {
     healthcare: "Operational hazards relate to bulk medical gases (oxygen, nitrous oxide), pharmacy stocks and any radioactive sources used in diagnostic or therapeutic services. These would be managed under DSEAR 2002, the Ionising Radiations Regulations 2017 and relevant HBN guidance; COMAH applicability will be confirmed against the specific clinical service mix. With these controls, the risk of major accidents is considered manageable.",
     'energy infrastructure': "Operational hazards include transformer oil fires, BESS thermal runaway and high-voltage electrical risk. These would be managed under DSEAR 2002, the Electricity Safety, Quality and Continuity Regulations 2002, and applicable industry standards (including NFPA 855 for BESS); all installations will be confirmed against COMAH thresholds. With these controls, the risk of major accidents is considered manageable.",
     'transport infrastructure': "Operational hazards relate primarily to inherent vehicle accident risk on the network, addressed through design, signing and operational management. No COMAH-regulated installations are anticipated as part of the proposed transport infrastructure itself, and the risk of major accidents in EIA terms is considered low.",
-    default: "There are no Control of Major Accident Hazards (COMAH) regulated installations within or close to the Site, and the proposed uses do not involve hazardous substances or unusual technologies. The risk of major accidents is low and no likely significant effects are anticipated.",
+    default: "There are no Control of Major Accident Hazards (COMAH) regulated installations within or close to the Site, and the proposed uses do not involve hazardous substances or unusual technologies. The risk of major accidents is low and no likely significant effects are anticipated."
   },
-
   // ---- daylight (receptor identification line) ----
   daylightReceptors: {
     residential: "the existing residential properties and amenity spaces surrounding the Site",
@@ -838,8 +1158,8 @@ const TYPE_VARIANTS = {
     healthcare: "any existing residential properties surrounding the Site and patient-facing areas within the proposed healthcare facility, where daylight access supports clinical outcomes",
     'energy infrastructure': "any existing residential properties adjoining the Site; the Development itself does not contain occupied accommodation",
     'transport infrastructure': "any existing residential properties adjoining the alignment; the Development itself does not contain occupied accommodation",
-    default: "the existing residential properties and amenity spaces surrounding the Site",
-  },
+    default: "the existing residential properties and amenity spaces surrounding the Site"
+  }
 };
 
 // Helper: pull a development-type-specific phrase from the variants catalogue, falling
@@ -854,199 +1174,256 @@ function tv(d, key) {
 // TOPIC TEMPLATES
 // ===========================
 
-const TOPICS = [
-  {
-    id: 'socioeconomics', name: 'Socio-economics, Population & Human Health', category: 'Human environment', conclusion: 'Beneficial but not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : '';
-      return `The Site is occupied by {{SITE_CURRENT_USE}}. Redevelopment to deliver {{DEVELOPMENT_DESCRIPTION}} would ${tv(d, 'socioStrategic')}, but is typical of schemes of this scale and not significant in EIA terms. During construction, temporary employment and associated expenditure would be generated locally — beneficial but time-limited. ${tv(d, 'socioOperational')} The nearest residential receptors are approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site; construction-phase amenity effects (noise, dust, traffic) would be managed through standard CEMP good practice.${docSentence} On this basis, no likely significant socio-economic, population or human health effects are anticipated.`;
-    },
-    flags: () => [],
+const TOPICS = [{
+  id: 'socioeconomics',
+  name: 'Socio-economics, Population & Human Health',
+  category: 'Human environment',
+  conclusion: 'Beneficial but not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : '';
+    return `The Site is occupied by {{SITE_CURRENT_USE}}. Redevelopment to deliver {{DEVELOPMENT_DESCRIPTION}} would ${tv(d, 'socioStrategic')}, but is typical of schemes of this scale and not significant in EIA terms. During construction, temporary employment and associated expenditure would be generated locally — beneficial but time-limited. ${tv(d, 'socioOperational')} The nearest residential receptors are approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site; construction-phase amenity effects (noise, dust, traffic) would be managed through standard CEMP good practice.${docSentence} On this basis, no likely significant socio-economic, population or human health effects are anticipated.`;
   },
-  {
-    id: 'naturalresources', name: 'Natural Resources and Waste', category: 'Resources', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : '';
-      return `The demolition and construction of the Development would require the use of natural and manufactured construction materials and would generate waste streams typical of redevelopment of this scale. A Construction Environmental Management Plan (CEMP) will be agreed with {{LOCAL_AUTHORITY}} prior to demolition and construction, setting out reuse, recycling and waste management practices, and soil resource protection measures for earthworks. Opportunities to minimise waste generation, particularly waste to landfill, will be sought in line with the CEMP and good site practice. ${tv(d, 'natResEnergyWater')} ${tv(d, 'natResWaste')}${docSentence} Accordingly, effects relating to the use of natural resources and waste generation would be localised, manageable and not significant.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'naturalresources',
+  name: 'Natural Resources and Waste',
+  category: 'Resources',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : '';
+    return `The demolition and construction of the Development would require the use of natural and manufactured construction materials and would generate waste streams typical of redevelopment of this scale. A Construction Environmental Management Plan (CEMP) will be agreed with {{LOCAL_AUTHORITY}} prior to demolition and construction, setting out reuse, recycling and waste management practices, and soil resource protection measures for earthworks. Opportunities to minimise waste generation, particularly waste to landfill, will be sought in line with the CEMP and good site practice. ${tv(d, 'natResEnergyWater')} ${tv(d, 'natResWaste')}${docSentence} Accordingly, effects relating to the use of natural resources and waste generation would be localised, manageable and not significant.`;
   },
-  {
-    id: 'transport', name: 'Transport and Access', category: 'Movement', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const prow = s.publicRightsOfWay && s.publicRightsOfWay.flag === 'not_detected'
-        ? ` No recorded Public Rights of Way cross or immediately adjoin the Site.`
-        : (s.publicRightsOfWay && (s.publicRightsOfWay.flag === 'on_site')
-          ? ` A Public Right of Way crosses or adjoins the Site; its alignment and continuity will be retained or appropriately diverted, with any temporary closure agreed with {{LOCAL_AUTHORITY}}.`
-          : '');
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will accompany the planning application.`
-        : ` No specialist transport assessment is considered necessary in support of this application given the scale and trip-generation profile of the Development.`;
-      return `During demolition and construction, temporary Heavy Goods Vehicle (HGV) and light vehicle movements would occur. Construction traffic routing would be secured through the CEMP and/or a Construction Logistics Plan, with construction traffic accessing the Site via {{CONSTRUCTION_ACCESS_ROUTE}}. The net change in HGV and light vehicular traffic flows on the local road network is not expected to generate significant effects in the context of existing flows and access to the strategic road network. ${tv(d, 'transportOperational')}${prow}${docSentence} On this basis, the construction and operational transport effects are not considered significant in EIA terms.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'transport',
+  name: 'Transport and Access',
+  category: 'Movement',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const prow = s.publicRightsOfWay && s.publicRightsOfWay.flag === 'not_detected' ? ` No recorded Public Rights of Way cross or immediately adjoin the Site.` : s.publicRightsOfWay && s.publicRightsOfWay.flag === 'on_site' ? ` A Public Right of Way crosses or adjoins the Site; its alignment and continuity will be retained or appropriately diverted, with any temporary closure agreed with {{LOCAL_AUTHORITY}}.` : '';
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : ` No specialist transport assessment is considered necessary in support of this application given the scale and trip-generation profile of the Development.`;
+    return `During demolition and construction, temporary Heavy Goods Vehicle (HGV) and light vehicle movements would occur. Construction traffic routing would be secured through the CEMP and/or a Construction Logistics Plan, with construction traffic accessing the Site via {{CONSTRUCTION_ACCESS_ROUTE}}. The net change in HGV and light vehicular traffic flows on the local road network is not expected to generate significant effects in the context of existing flows and access to the strategic road network. ${tv(d, 'transportOperational')}${prow}${docSentence} On this basis, the construction and operational transport effects are not considered significant in EIA terms.`;
   },
-  {
-    id: 'airquality', name: 'Air Quality and Odour', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will be submitted with the planning application.`
-        : ` No specialist air quality assessment is considered necessary in support of this application given the scale of the Development and its distance from existing exceedance areas.`;
-      return `${aqBaseline(s)} Key pollutants relevant to the Development are NO₂ and particulate matter (PM₁₀ and PM₂.₅). During construction, the main air quality risk relates to dust generation. Good practice measures secured through the CEMP — such as hoarding, water suppression and the covering of vehicles, based on Institute of Air Quality Management (IAQM) guidance — would control dust at source and ensure effects remain localised and temporary. Construction plant would comply with modern emissions standards. ${tv(d, 'airqOperational')} No significant on-site emission sources are proposed, and there are no odour-generating activities within or near the Site that could affect future receptors.${docSentence} No likely significant air quality or odour effects are anticipated.`;
-    },
-    flags: (s) => s.aqma.flag === 'on_site' ? [{ level: 'review', text: 'AQMA on site — robust AQA needed; confirm scope-out with LPA' }] : [],
+  flags: () => []
+}, {
+  id: 'airquality',
+  name: 'Air Quality and Odour',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will be submitted with the planning application.` : ` No specialist air quality assessment is considered necessary in support of this application given the scale of the Development and its distance from existing exceedance areas.`;
+    return `${aqBaseline(s)} Key pollutants relevant to the Development are NO₂ and particulate matter (PM₁₀ and PM₂.₅). During construction, the main air quality risk relates to dust generation. Good practice measures secured through the CEMP — such as hoarding, water suppression and the covering of vehicles, based on Institute of Air Quality Management (IAQM) guidance — would control dust at source and ensure effects remain localised and temporary. Construction plant would comply with modern emissions standards. ${tv(d, 'airqOperational')} No significant on-site emission sources are proposed, and there are no odour-generating activities within or near the Site that could affect future receptors.${docSentence} No likely significant air quality or odour effects are anticipated.`;
   },
-  {
-    id: 'noise', name: 'Noise and Vibration', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` Residential units would be designed to meet BS 8233:2014 internal noise standards through suitable glazing and ventilation, informed by ${listDocs(docs)}.`
-        : ` Residential units would be designed to meet BS 8233:2014 internal noise standards through suitable glazing and ventilation. No specialist noise and vibration assessment is considered necessary in support of this application given the scale and context of the Development.`;
-      return `Ambient noise levels at the Site are dominated by traffic on {{KEY_ROADS}}. The nearest sensitive receptors are approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. Construction activities would introduce temporary noise and occasional vibration typical of urban demolition and redevelopment. These effects would be controlled through Best Practicable Means, defined working hours, acoustic screening/hoarding where appropriate, and monitoring and complaints procedures secured via the CEMP. Where necessary, Section 61 prior consent may also be used to manage construction noise. Vibration effects on nearby receptors are expected to be negligible. Construction and operational traffic is not expected to materially alter noise conditions — traffic noise is relatively insensitive to change (a 3 dB just-perceptible change requires roughly a doubling of flow), and vehicle movements associated with the Development would not approach this threshold. ${tv(d, 'noiseOperational')}${docSentence} With standard construction controls, appropriate acoustic design and limited operational sources, no significant noise or vibration effects are anticipated.`;
-    },
-    flags: () => [],
+  flags: s => s.aqma.flag === 'on_site' ? [{
+    level: 'review',
+    text: 'AQMA on site — robust AQA needed; confirm scope-out with LPA'
+  }] : []
+}, {
+  id: 'noise',
+  name: 'Noise and Vibration',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` Residential units would be designed to meet BS 8233:2014 internal noise standards through suitable glazing and ventilation, informed by ${listDocs(docs)}.` : ` Residential units would be designed to meet BS 8233:2014 internal noise standards through suitable glazing and ventilation. No specialist noise and vibration assessment is considered necessary in support of this application given the scale and context of the Development.`;
+    return `Ambient noise levels at the Site are dominated by traffic on {{KEY_ROADS}}. The nearest sensitive receptors are approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. Construction activities would introduce temporary noise and occasional vibration typical of urban demolition and redevelopment. These effects would be controlled through Best Practicable Means, defined working hours, acoustic screening/hoarding where appropriate, and monitoring and complaints procedures secured via the CEMP. Where necessary, Section 61 prior consent may also be used to manage construction noise. Vibration effects on nearby receptors are expected to be negligible. Construction and operational traffic is not expected to materially alter noise conditions — traffic noise is relatively insensitive to change (a 3 dB just-perceptible change requires roughly a doubling of flow), and vehicle movements associated with the Development would not approach this threshold. ${tv(d, 'noiseOperational')}${docSentence} With standard construction controls, appropriate acoustic design and limited operational sources, no significant noise or vibration effects are anticipated.`;
   },
-  {
-    id: 'groundconditions', name: 'Ground Conditions and Contamination', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will be submitted with the planning application, with any necessary intrusive investigation and remediation strategy secured by planning condition.`
-        : ` No specialist ground conditions assessment is considered necessary in support of this application; any required investigation and remediation can be secured by planning condition.`;
-      return `British Geological Survey (BGS) mapping will be reviewed to characterise the underlying geology and hydrogeology of the Site. Given that the Site comprises {{SITE_HISTORICAL_USE}}, there is potential for made ground and contamination requiring proportionate investigation. Standard investigation, remediation (where necessary) and verification processes — secured through the planning regime and implemented via construction management — would protect construction workers, the public and controlled waters. ${tv(d, 'groundOperational')}${docSentence} With standard investigation and control measures, no likely significant effects on ground conditions or contamination are anticipated.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'groundconditions',
+  name: 'Ground Conditions and Contamination',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will be submitted with the planning application, with any necessary intrusive investigation and remediation strategy secured by planning condition.` : ` No specialist ground conditions assessment is considered necessary in support of this application; any required investigation and remediation can be secured by planning condition.`;
+    return `British Geological Survey (BGS) mapping will be reviewed to characterise the underlying geology and hydrogeology of the Site. Given that the Site comprises {{SITE_HISTORICAL_USE}}, there is potential for made ground and contamination requiring proportionate investigation. Standard investigation, remediation (where necessary) and verification processes — secured through the planning regime and implemented via construction management — would protect construction workers, the public and controlled waters. ${tv(d, 'groundOperational')}${docSentence} With standard investigation and control measures, no likely significant effects on ground conditions or contamination are anticipated.`;
   },
-  {
-    id: 'waterenvironment', name: 'Water Environment (Resources, Flood Risk, Drainage)', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const fz = floodZoneNote(s);
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will accompany the planning application.`
-        : ` No specialist flood risk or drainage assessment is considered necessary in support of this application given the Site's location in ${fz.zone} and the modest scale of the Development.`;
-      return `The Site lies within ${fz.zone}, indicating ${fz.risk}. Surface water flood risk will be characterised through the Flood Risk Assessment, with any localised areas of risk addressed through the surface water drainage strategy. During construction, potential effects relate to runoff, sedimentation and accidental spillages, controlled through standard good practice secured within the CEMP, including proper material storage, spill-prevention controls and runoff management. Once operational, the Development will incorporate a surface water drainage strategy including Sustainable Drainage Systems (SuDS) where appropriate, to control discharge rates and volumes, manage water quality, and avoid increasing flood risk on- or off-site. Water-efficiency measures (efficient fittings and water-saving appliances) will be incorporated in line with good practice. ${tv(d, 'waterOperational')}${docSentence} No significant effects on the water environment are anticipated.`;
-    },
-    flags: (s) => {
-      if (s.floodZone3.flag === 'on_site') return [{ level: 'warn', text: 'Flood Zone 3 on site — Sequential/Exception Tests may apply; consider scoping in' }];
-      if (s.floodZone2.flag === 'on_site') return [{ level: 'review', text: 'Flood Zone 2 on site — flag in FRA and confirm scope-out' }];
-      return [];
-    },
+  flags: () => []
+}, {
+  id: 'waterenvironment',
+  name: 'Water Environment (Resources, Flood Risk, Drainage)',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const fz = floodZoneNote(s);
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : ` No specialist flood risk or drainage assessment is considered necessary in support of this application given the Site's location in ${fz.zone} and the modest scale of the Development.`;
+    return `The Site lies within ${fz.zone}, indicating ${fz.risk}. Surface water flood risk will be characterised through the Flood Risk Assessment, with any localised areas of risk addressed through the surface water drainage strategy. During construction, potential effects relate to runoff, sedimentation and accidental spillages, controlled through standard good practice secured within the CEMP, including proper material storage, spill-prevention controls and runoff management. Once operational, the Development will incorporate a surface water drainage strategy including Sustainable Drainage Systems (SuDS) where appropriate, to control discharge rates and volumes, manage water quality, and avoid increasing flood risk on- or off-site. Water-efficiency measures (efficient fittings and water-saving appliances) will be incorporated in line with good practice. ${tv(d, 'waterOperational')}${docSentence} No significant effects on the water environment are anticipated.`;
   },
-  {
-    id: 'culturalheritage', name: 'Cultural Heritage (Built and Archaeology)', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will accompany the planning application to confirm this assessment through detailed setting analysis and inform any required programme of archaeological investigation, agreed with {{LOCAL_AUTHORITY}}'s archaeological advisor and secured by appropriately worded planning conditions.`
-        : ` No specialist heritage assessment is considered necessary in support of this application given the absence of designated heritage assets within close proximity to the Site; any required archaeological investigation can be agreed with {{LOCAL_AUTHORITY}}'s archaeological advisor and secured by planning condition.`;
-      return `${conservationAreaNote(s)} ${listedBuildingNote(s)} ${scheduledMonumentNote(s)} ${registeredParkGardenNote(s)} The Development has been designed sensitively having regard to the setting of these assets, with the proposed massing and architectural treatment intended to respect and where possible enhance the surrounding historic environment.${docSentence} With sensitive design, ongoing pre-application consultation, and the implementation of appropriate archaeological mitigation where required, no likely significant cultural heritage effects are anticipated.`;
-    },
-    flags: (s) => {
-      const out = [];
-      if (s.conservationArea.flag === 'on_site') out.push({ level: 'review', text: 'Site in Conservation Area — heritage scoping requires close LPA dialogue' });
-      if (s.listedBuilding.flag === 'on_site') out.push({ level: 'warn', text: 'Listed building on site — bespoke heritage approach required' });
-      if (s.scheduledMonument.flag === 'on_site') out.push({ level: 'warn', text: 'Scheduled Monument on site — Historic England consultation essential' });
-      return out;
-    },
+  flags: s => {
+    if (s.floodZone3.flag === 'on_site') return [{
+      level: 'warn',
+      text: 'Flood Zone 3 on site — Sequential/Exception Tests may apply; consider scoping in'
+    }];
+    if (s.floodZone2.flag === 'on_site') return [{
+      level: 'review',
+      text: 'Flood Zone 2 on site — flag in FRA and confirm scope-out'
+    }];
+    return [];
+  }
+}, {
+  id: 'culturalheritage',
+  name: 'Cultural Heritage (Built and Archaeology)',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application to confirm this assessment through detailed setting analysis and inform any required programme of archaeological investigation, agreed with {{LOCAL_AUTHORITY}}'s archaeological advisor and secured by appropriately worded planning conditions.` : ` No specialist heritage assessment is considered necessary in support of this application given the absence of designated heritage assets within close proximity to the Site; any required archaeological investigation can be agreed with {{LOCAL_AUTHORITY}}'s archaeological advisor and secured by planning condition.`;
+    return `${conservationAreaNote(s)} ${listedBuildingNote(s)} ${scheduledMonumentNote(s)} ${registeredParkGardenNote(s)} The Development has been designed sensitively having regard to the setting of these assets, with the proposed massing and architectural treatment intended to respect and where possible enhance the surrounding historic environment.${docSentence} With sensitive design, ongoing pre-application consultation, and the implementation of appropriate archaeological mitigation where required, no likely significant cultural heritage effects are anticipated.`;
   },
-  {
-    id: 'biodiversity', name: 'Biodiversity', category: 'Environment', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const designations = ecologicalDesignationsNote(s);
-      const hraTrigger = ['spa', 'sac', 'ramsar'].some(k => s[k].flag === 'on_site' || (['within_5km', 'within_1km'].includes(s[k].flag) && s[k].nearestDistanceKm != null && s[k].nearestDistanceKm < 5));
-      const hraSentence = hraTrigger ? ` Given proximity to European/internationally designated sites, a Habitats Regulations Assessment (HRA) screening will be undertaken in support of the planning application to confirm no Likely Significant Effects (alone or in combination).` : '';
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will accompany the planning application, with any further species-specific surveys undertaken to inform mitigation where required.`
-        : ` No specialist ecological assessment is considered necessary in support of this application given the low-sensitivity baseline; any further species-specific surveys can be secured by planning condition where required.`;
-      return `${designations}${hraSentence} ${tv(d, 'biodivCharacter')} Construction-phase risks — temporary noise, dust, artificial lighting and accidental pollution — would be controlled through standard good practice secured within the CEMP, preventing adverse effects on retained habitats and nearby sensitive receptors. The Development will achieve a minimum 10% Biodiversity Net Gain in line with the mandatory requirement under the Environment Act 2021, delivered through a landscape-led strategy appropriate to the Site context.${docSentence} With a low-sensitivity ecological baseline, good practice construction controls and incorporation of BNG-focused landscape enhancements, no likely significant ecological effects are anticipated.`;
-    },
-    flags: (s) => {
-      const out = [];
-      const onSite = ['sssi', 'spa', 'sac', 'ramsar', 'localNatureReserve', 'localWildlifeSite'].find(k => s[k]?.flag === 'on_site');
-      if (onSite) out.push({ level: 'warn', text: `Designated ecological site on Site (${onSite.toUpperCase()}) — biodiversity should be scoped in` });
-      const closeIntl = ['spa', 'sac', 'ramsar'].find(k => ['within_5km', 'within_1km'].includes(s[k].flag) && s[k].nearestDistanceKm != null && s[k].nearestDistanceKm < 2);
-      if (closeIntl) out.push({ level: 'review', text: 'European site within 2 km — HRA screening essential; scope-out depends on findings' });
-      if (['within_5km', 'within_1km'].includes(s.sssi.flag) && s.sssi.nearestDistanceKm != null && s.sssi.nearestDistanceKm < 2) {
-        out.push({ level: 'review', text: 'SSSI within 2 km — Natural England consultation; scope-out depends on impact pathway' });
-      }
-      return out;
-    },
+  flags: s => {
+    const out = [];
+    if (s.conservationArea.flag === 'on_site') out.push({
+      level: 'review',
+      text: 'Site in Conservation Area — heritage scoping requires close LPA dialogue'
+    });
+    if (s.listedBuilding.flag === 'on_site') out.push({
+      level: 'warn',
+      text: 'Listed building on site — bespoke heritage approach required'
+    });
+    if (s.scheduledMonument.flag === 'on_site') out.push({
+      level: 'warn',
+      text: 'Scheduled Monument on site — Historic England consultation essential'
+    });
+    return out;
+  }
+}, {
+  id: 'biodiversity',
+  name: 'Biodiversity',
+  category: 'Environment',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const designations = ecologicalDesignationsNote(s);
+    const hraTrigger = ['spa', 'sac', 'ramsar'].some(k => s[k].flag === 'on_site' || ['within_5km', 'within_1km'].includes(s[k].flag) && s[k].nearestDistanceKm != null && s[k].nearestDistanceKm < 5);
+    const hraSentence = hraTrigger ? ` Given proximity to European/internationally designated sites, a Habitats Regulations Assessment (HRA) screening will be undertaken in support of the planning application to confirm no Likely Significant Effects (alone or in combination).` : '';
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application, with any further species-specific surveys undertaken to inform mitigation where required.` : ` No specialist ecological assessment is considered necessary in support of this application given the low-sensitivity baseline; any further species-specific surveys can be secured by planning condition where required.`;
+    return `${designations}${hraSentence} ${tv(d, 'biodivCharacter')} Construction-phase risks — temporary noise, dust, artificial lighting and accidental pollution — would be controlled through standard good practice secured within the CEMP, preventing adverse effects on retained habitats and nearby sensitive receptors. The Development will achieve a minimum 10% Biodiversity Net Gain in line with the mandatory requirement under the Environment Act 2021, delivered through a landscape-led strategy appropriate to the Site context.${docSentence} With a low-sensitivity ecological baseline, good practice construction controls and incorporation of BNG-focused landscape enhancements, no likely significant ecological effects are anticipated.`;
   },
-  {
-    id: 'townscape', name: 'Townscape and Views', category: 'Environment', conclusion: 'Beneficial but not significant',
-    template: (s, d, docs) => {
-      if (!listDocs(docs)) {
-        return `The Site is located within ${townscapeContext(s)}, with the Development comprising {{BUILDING_STOREYS_DESCRIPTION}}. Given the modest scale of the proposals and the established character of the surrounding townscape, the Development is not of a scale or sensitivity likely to give rise to significant townscape or visual effects. The proposed massing and architectural treatment has been designed to respond to the local context, reinstate active frontage and contribute positively to local legibility and wayfinding. No formal Heritage/Townscape and Visual Impact Assessment is considered necessary in support of this application; the townscape and visual effects are not significant in EIA terms.`;
-      }
-      const viewpointPhrase = d.numberOfViewpoints && String(d.numberOfViewpoints).trim()
-        ? `Accurate Visual Representations (AVRs) from {{NUMBER_OF_VIEWPOINTS}} viewpoints agreed with {{LOCAL_AUTHORITY}} during pre-application consultation`
-        : `Accurate Visual Representations (AVRs) from a series of viewpoints agreed with {{LOCAL_AUTHORITY}} during pre-application consultation`;
-      return `The Site is located within ${townscapeContext(s)}, with the Development comprising {{BUILDING_STOREYS_DESCRIPTION}}. ${tv(d, 'townscapeForm')} ${capFirst(listDocs(docs))} will be informed by ${viewpointPhrase}, covering sensitive locations including nearby conservation areas and heritage assets. Early studies indicate that visual change would be beneficial in nature, contributing to the uplift of the local streetscape and aligning with the strategic objectives in the {{LOCAL_PLAN}}. While the Development would result in a major change to the existing Site, the nature of this change is consistent with the development plan's strategic objectives. On this basis, the townscape and visual effects are assessed as beneficial but not significant.`;
-    },
-    flags: (s) => {
-      const out = [];
-      if (s.greenBelt.flag === 'on_site') out.push({ level: 'review', text: 'Green Belt on site — openness/VSC considerations; check policy compliance' });
-      if (s.aonb.flag === 'on_site' || s.nationalPark.flag === 'on_site') out.push({ level: 'warn', text: 'AONB/National Park on site — heightened landscape sensitivity; consider LVIA scope-in' });
-      return out;
-    },
+  flags: s => {
+    const out = [];
+    const onSite = ['sssi', 'spa', 'sac', 'ramsar', 'localNatureReserve', 'localWildlifeSite'].find(k => s[k]?.flag === 'on_site');
+    if (onSite) out.push({
+      level: 'warn',
+      text: `Designated ecological site on Site (${onSite.toUpperCase()}) — biodiversity should be scoped in`
+    });
+    const closeIntl = ['spa', 'sac', 'ramsar'].find(k => ['within_5km', 'within_1km'].includes(s[k].flag) && s[k].nearestDistanceKm != null && s[k].nearestDistanceKm < 2);
+    if (closeIntl) out.push({
+      level: 'review',
+      text: 'European site within 2 km — HRA screening essential; scope-out depends on findings'
+    });
+    if (['within_5km', 'within_1km'].includes(s.sssi.flag) && s.sssi.nearestDistanceKm != null && s.sssi.nearestDistanceKm < 2) {
+      out.push({
+        level: 'review',
+        text: 'SSSI within 2 km — Natural England consultation; scope-out depends on impact pathway'
+      });
+    }
+    return out;
+  }
+}, {
+  id: 'townscape',
+  name: 'Townscape and Views',
+  category: 'Environment',
+  conclusion: 'Beneficial but not significant',
+  template: (s, d, docs) => {
+    if (!listDocs(docs)) {
+      return `The Site is located within ${townscapeContext(s)}, with the Development comprising {{BUILDING_STOREYS_DESCRIPTION}}. Given the modest scale of the proposals and the established character of the surrounding townscape, the Development is not of a scale or sensitivity likely to give rise to significant townscape or visual effects. The proposed massing and architectural treatment has been designed to respond to the local context, reinstate active frontage and contribute positively to local legibility and wayfinding. No formal Heritage/Townscape and Visual Impact Assessment is considered necessary in support of this application; the townscape and visual effects are not significant in EIA terms.`;
+    }
+    const viewpointPhrase = d.numberOfViewpoints && String(d.numberOfViewpoints).trim() ? `Accurate Visual Representations (AVRs) from {{NUMBER_OF_VIEWPOINTS}} viewpoints agreed with {{LOCAL_AUTHORITY}} during pre-application consultation` : `Accurate Visual Representations (AVRs) from a series of viewpoints agreed with {{LOCAL_AUTHORITY}} during pre-application consultation`;
+    return `The Site is located within ${townscapeContext(s)}, with the Development comprising {{BUILDING_STOREYS_DESCRIPTION}}. ${tv(d, 'townscapeForm')} ${capFirst(listDocs(docs))} will be informed by ${viewpointPhrase}, covering sensitive locations including nearby conservation areas and heritage assets. Early studies indicate that visual change would be beneficial in nature, contributing to the uplift of the local streetscape and aligning with the strategic objectives in the {{LOCAL_PLAN}}. While the Development would result in a major change to the existing Site, the nature of this change is consistent with the development plan's strategic objectives. On this basis, the townscape and visual effects are assessed as beneficial but not significant.`;
   },
-  {
-    id: 'wind', name: 'Wind Microclimate', category: 'Microclimate', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      if (!listDocs(docs)) {
-        return `Given the modest scale of {{BUILDING_STOREYS_DESCRIPTION}}, the Development is not of a height or massing likely to give rise to adverse wind microclimate effects. Wind conditions at pedestrian level across the Site and its surroundings would not materially change as a result of the Development, with the prevailing wind climate (predominantly influenced by {{PREVAILING_WIND_NOTE}}) remaining consistent with existing conditions. No formal wind microclimate assessment is considered necessary in support of this application, and no significant wind effects are anticipated.`;
-      }
-      return `The wind climate is predominantly influenced by {{PREVAILING_WIND_NOTE}}. The Site is currently occupied by {{SITE_CURRENT_USE}} and is bounded by {{SITE_BOUNDARIES}}. The Development introduces {{BUILDING_STOREYS_DESCRIPTION}}, of greater height than much of the surrounding townscape, and will increase pedestrian activity within and around the Site. As a result, there is potential for localised wind effects, including downdraughting from taller façades and areas where calmer wind conditions are required for outdoor amenity use. ${capFirst(listDocs(docs))} will be undertaken to establish likely wind conditions across the Site, with mitigation (landscaping, screens, canopies or localised massing adjustments) incorporated into the design where required. The Development will be informed by specialist wind engineering input to ensure final design measures provide safe, comfortable and policy-compliant wind conditions. With assessment-led design and the ability to incorporate proportionate mitigation, no significant wind effects are anticipated.`;
-    },
-    flags: () => [],
+  flags: s => {
+    const out = [];
+    if (s.greenBelt.flag === 'on_site') out.push({
+      level: 'review',
+      text: 'Green Belt on site — openness/VSC considerations; check policy compliance'
+    });
+    if (s.aonb.flag === 'on_site' || s.nationalPark.flag === 'on_site') out.push({
+      level: 'warn',
+      text: 'AONB/National Park on site — heightened landscape sensitivity; consider LVIA scope-in'
+    });
+    return out;
+  }
+}, {
+  id: 'wind',
+  name: 'Wind Microclimate',
+  category: 'Microclimate',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    if (!listDocs(docs)) {
+      return `Given the modest scale of {{BUILDING_STOREYS_DESCRIPTION}}, the Development is not of a height or massing likely to give rise to adverse wind microclimate effects. Wind conditions at pedestrian level across the Site and its surroundings would not materially change as a result of the Development, with the prevailing wind climate (predominantly influenced by {{PREVAILING_WIND_NOTE}}) remaining consistent with existing conditions. No formal wind microclimate assessment is considered necessary in support of this application, and no significant wind effects are anticipated.`;
+    }
+    return `The wind climate is predominantly influenced by {{PREVAILING_WIND_NOTE}}. The Site is currently occupied by {{SITE_CURRENT_USE}} and is bounded by {{SITE_BOUNDARIES}}. The Development introduces {{BUILDING_STOREYS_DESCRIPTION}}, of greater height than much of the surrounding townscape, and will increase pedestrian activity within and around the Site. As a result, there is potential for localised wind effects, including downdraughting from taller façades and areas where calmer wind conditions are required for outdoor amenity use. ${capFirst(listDocs(docs))} will be undertaken to establish likely wind conditions across the Site, with mitigation (landscaping, screens, canopies or localised massing adjustments) incorporated into the design where required. The Development will be informed by specialist wind engineering input to ensure final design measures provide safe, comfortable and policy-compliant wind conditions. With assessment-led design and the ability to incorporate proportionate mitigation, no significant wind effects are anticipated.`;
   },
-  {
-    id: 'daylight', name: 'Daylight, Sunlight and Overshadowing', category: 'Microclimate', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const receptors = tv(d, 'daylightReceptors');
-      if (!listDocs(docs)) {
-        return `The key sensitive receptors for daylight, sunlight and overshadowing are ${receptors}, with the nearest receptors approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. Given the modest scale of {{BUILDING_STOREYS_DESCRIPTION}} and the separation distances involved, the Development is not of a scale likely to give rise to significant daylight, sunlight or overshadowing effects on surrounding receptors. The scheme has been designed to maintain acceptable daylight and sunlight conditions for both neighbouring properties and future residents. No formal Daylight, Sunlight and Overshadowing Assessment is considered necessary in support of this application, and no significant effects are anticipated.`;
-      }
-      return `The key sensitive receptors for daylight, sunlight and overshadowing are ${receptors}, with the nearest receptors approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. The scheme design is being informed by dedicated daylight, sunlight and overshadowing studies, guided by the BRE 209:2022 recommendations, to minimise potential effects on surrounding receptors. A 3D model is being used to assess daylight and sunlight performance for both neighbouring properties and new homes within the Development, ensuring layout and massing achieve good levels of compliance and maintain acceptable conditions for future residents. ${capFirst(listDocs(docs))} will accompany the planning application to confirm these outcomes. At this stage, any changes in daylight and sunlight levels are expected to be limited in extent and not significant in EIA terms.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'daylight',
+  name: 'Daylight, Sunlight and Overshadowing',
+  category: 'Microclimate',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const receptors = tv(d, 'daylightReceptors');
+    if (!listDocs(docs)) {
+      return `The key sensitive receptors for daylight, sunlight and overshadowing are ${receptors}, with the nearest receptors approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. Given the modest scale of {{BUILDING_STOREYS_DESCRIPTION}} and the separation distances involved, the Development is not of a scale likely to give rise to significant daylight, sunlight or overshadowing effects on surrounding receptors. The scheme has been designed to maintain acceptable daylight and sunlight conditions for both neighbouring properties and future residents. No formal Daylight, Sunlight and Overshadowing Assessment is considered necessary in support of this application, and no significant effects are anticipated.`;
+    }
+    return `The key sensitive receptors for daylight, sunlight and overshadowing are ${receptors}, with the nearest receptors approximately {{NEAREST_RECEPTOR_DISTANCE}} from the Site. The scheme design is being informed by dedicated daylight, sunlight and overshadowing studies, guided by the BRE 209:2022 recommendations, to minimise potential effects on surrounding receptors. A 3D model is being used to assess daylight and sunlight performance for both neighbouring properties and new homes within the Development, ensuring layout and massing achieve good levels of compliance and maintain acceptable conditions for future residents. ${capFirst(listDocs(docs))} will accompany the planning application to confirm these outcomes. At this stage, any changes in daylight and sunlight levels are expected to be limited in extent and not significant in EIA terms.`;
   },
-  {
-    id: 'lightglare', name: 'Light Pollution and Glare', category: 'Microclimate', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will be implemented to provide appropriate artificial lighting, including feature lighting in key areas, while minimising light spill. This will be delivered in line with Institute of Lighting Professionals (ILP) and Bat Conservation Trust guidance, including a sensitive approach to lighting design and glazing.`
-        : ` Artificial lighting will be designed in line with Institute of Lighting Professionals (ILP) and Bat Conservation Trust guidance, with details secured by planning condition. No formal lighting strategy is considered necessary in support of this application.`;
-      return `${tv(d, 'lightOpening')}${docSentence} Facade materials and detailed design are still being refined but are not expected to have significant reflective value, with consideration of solar glare incorporated into ongoing design development to ensure road users on {{KEY_ROADS}} are not adversely affected. On this basis, and subject to confirmation at detailed design stage, significant light pollution or glare effects are considered unlikely.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'lightglare',
+  name: 'Light Pollution and Glare',
+  category: 'Microclimate',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will be implemented to provide appropriate artificial lighting, including feature lighting in key areas, while minimising light spill. This will be delivered in line with Institute of Lighting Professionals (ILP) and Bat Conservation Trust guidance, including a sensitive approach to lighting design and glazing.` : ` Artificial lighting will be designed in line with Institute of Lighting Professionals (ILP) and Bat Conservation Trust guidance, with details secured by planning condition. No formal lighting strategy is considered necessary in support of this application.`;
+    return `${tv(d, 'lightOpening')}${docSentence} Facade materials and detailed design are still being refined but are not expected to have significant reflective value, with consideration of solar glare incorporated into ongoing design development to ensure road users on {{KEY_ROADS}} are not adversely affected. On this basis, and subject to confirmation at detailed design stage, significant light pollution or glare effects are considered unlikely.`;
   },
-  {
-    id: 'climate', name: 'Climate Change and Greenhouse Gas Emissions', category: 'Resources', conclusion: 'Not significant',
-    template: (s, d, docs) => {
-      const docSentence = listDocs(docs)
-        ? ` ${capFirst(listDocs(docs))} will accompany the planning application.`
-        : ` No specialist sustainability or carbon assessment is considered necessary in support of this application given the scale of the Development.`;
-      return `{{LOCAL_AUTHORITY}} requires new development to contribute to carbon reduction in line with national net zero commitments and local climate policy. The Development will seek to achieve net zero carbon-ready performance in line with current policy expectations. ${tv(d, 'climateOperational')} The Development will also incorporate climate change adaptation measures designed to address potential future risks, including allowance for storm events in drainage design, use of durable materials, and solar shading and glazing to avoid overheating.${docSentence} Overall, no significant increases in greenhouse gas emissions are anticipated as a result of the Development.`;
-    },
-    flags: () => [],
+  flags: () => []
+}, {
+  id: 'climate',
+  name: 'Climate Change and Greenhouse Gas Emissions',
+  category: 'Resources',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => {
+    const docSentence = listDocs(docs) ? ` ${capFirst(listDocs(docs))} will accompany the planning application.` : ` No specialist sustainability or carbon assessment is considered necessary in support of this application given the scale of the Development.`;
+    return `{{LOCAL_AUTHORITY}} requires new development to contribute to carbon reduction in line with national net zero commitments and local climate policy. The Development will seek to achieve net zero carbon-ready performance in line with current policy expectations. ${tv(d, 'climateOperational')} The Development will also incorporate climate change adaptation measures designed to address potential future risks, including allowance for storm events in drainage design, use of durable materials, and solar shading and glazing to avoid overheating.${docSentence} Overall, no significant increases in greenhouse gas emissions are anticipated as a result of the Development.`;
   },
-  {
-    id: 'majoraccidents', name: 'Major Accidents and Disasters', category: 'Resilience', conclusion: 'Not significant',
-    template: (s, d, docs) => tv(d, 'majorAccidents'),
-    flags: () => [],
-  },
-];
+  flags: () => []
+}, {
+  id: 'majoraccidents',
+  name: 'Major Accidents and Disasters',
+  category: 'Resilience',
+  conclusion: 'Not significant',
+  template: (s, d, docs) => tv(d, 'majorAccidents'),
+  flags: () => []
+}];
 
 // ===========================
 // DEV DETAILS SCHEMA
 // ===========================
 
 const EMPTY_DEV = {
-  siteName: '', siteAreaHa: '', ngr: '', localAuthority: '', localPlan: '', applicant: '',
-  developmentType: '', useClass: '', developmentDescription: '', totalDwellings: '',
-  commercialFloorspace: '', buildingStoreysDescription: '', constructionStart: '', constructionEnd: '',
-  constructionPeriod: '', nearestReceptorDistance: '', siteCurrentUse: '', siteHistoricalUse: '',
-  prevailingWindNote: '', siteBoundaries: '', keyRoads: '', constructionAccessRoute: '',
-  carParkingStrategy: '', numberOfViewpoints: '', localWasteMineralsPlan: '',
+  siteName: '',
+  siteAreaHa: '',
+  ngr: '',
+  localAuthority: '',
+  localPlan: '',
+  applicant: '',
+  developmentType: '',
+  useClass: '',
+  developmentDescription: '',
+  totalDwellings: '',
+  commercialFloorspace: '',
+  buildingStoreysDescription: '',
+  constructionStart: '',
+  constructionEnd: '',
+  constructionPeriod: '',
+  nearestReceptorDistance: '',
+  siteCurrentUse: '',
+  siteHistoricalUse: '',
+  prevailingWindNote: '',
+  siteBoundaries: '',
+  keyRoads: '',
+  constructionAccessRoute: '',
+  carParkingStrategy: '',
+  numberOfViewpoints: '',
+  localWasteMineralsPlan: ''
 };
 
 // Default supporting documents per topic. Each topic can have zero or more documents;
@@ -1066,7 +1443,7 @@ const DEFAULT_TOPIC_DOCS = {
   daylight: [],
   lightglare: ['Lighting Strategy'],
   climate: ['Sustainability Statement', 'Whole Life-Cycle Carbon Assessment'],
-  majoraccidents: [],
+  majoraccidents: []
 };
 
 // ===========================
@@ -1074,356 +1451,694 @@ const DEFAULT_TOPIC_DOCS = {
 // ===========================
 
 function flagColor(f) {
-  return ({
-    on_site: { bg: '#FCE7E2', border: '#E5A89B', text: '#8B2D1A' },
-    within_1km: { bg: '#FBE7A1', border: '#E0BB3F', text: '#7A5800' },
-    within_5km: { bg: '#FBE7A1', border: '#E0BB3F', text: '#7A5800' },
-    within_search_area: { bg: '#E8EDE8', border: '#9FB5A4', text: '#2F4A3A' },
-    not_detected: { bg: '#F1EDE4', border: '#C7BFAB', text: '#6B6354' },
-    unknown: { bg: '#F1EDE4', border: '#C7BFAB', text: '#6B6354' },
-  }[f] || { bg: '#F1EDE4', border: '#C7BFAB', text: '#6B6354' });
+  return {
+    on_site: {
+      bg: '#FCE7E2',
+      border: '#E5A89B',
+      text: '#8B2D1A'
+    },
+    within_1km: {
+      bg: '#FBE7A1',
+      border: '#E0BB3F',
+      text: '#7A5800'
+    },
+    within_5km: {
+      bg: '#FBE7A1',
+      border: '#E0BB3F',
+      text: '#7A5800'
+    },
+    within_search_area: {
+      bg: '#E8EDE8',
+      border: '#9FB5A4',
+      text: '#2F4A3A'
+    },
+    not_detected: {
+      bg: '#F1EDE4',
+      border: '#C7BFAB',
+      text: '#6B6354'
+    },
+    unknown: {
+      bg: '#F1EDE4',
+      border: '#C7BFAB',
+      text: '#6B6354'
+    }
+  }[f] || {
+    bg: '#F1EDE4',
+    border: '#C7BFAB',
+    text: '#6B6354'
+  };
 }
-
-function Section({ title, subtitle, children, defaultOpen = true, action }) {
+function Section({
+  title,
+  subtitle,
+  children,
+  defaultOpen = true,
+  action
+}) {
   const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="bg-white border border-[#D9D4C7] rounded-sm mb-6 overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#FBFAF7] transition-colors border-b" style={{ borderBottomColor: open ? '#E8E4D8' : 'transparent' }}>
-        <div className="flex items-center gap-3">
-          {open ? <ChevronDown size={16} className="text-[#52605A]" /> : <ChevronRight size={16} className="text-[#52605A]" />}
-          <div>
-            <h2 className="font-display text-xl text-[#0F1F1A] tracking-tight leading-tight" style={{ fontWeight: 500 }}>{title}</h2>
-            {subtitle && <p className="text-sm text-[#52605A] mt-0.5 font-body">{subtitle}</p>}
-          </div>
-        </div>
-        {action && <div onClick={(e) => e.stopPropagation()}>{action}</div>}
-      </button>
-      {open && <div className="p-5 fade-in">{children}</div>}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-[#D9D4C7] rounded-sm mb-6 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setOpen(!open),
+    className: "w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#FBFAF7] transition-colors border-b",
+    style: {
+      borderBottomColor: open ? '#E8E4D8' : 'transparent'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, open ? /*#__PURE__*/React.createElement(ChevronDown, {
+    size: 16,
+    className: "text-[#52605A]"
+  }) : /*#__PURE__*/React.createElement(ChevronRight, {
+    size: 16,
+    className: "text-[#52605A]"
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-xl text-[#0F1F1A] tracking-tight leading-tight",
+    style: {
+      fontWeight: 500
+    }
+  }, title), subtitle && /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[#52605A] mt-0.5 font-body"
+  }, subtitle))), action && /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation()
+  }, action)), open && /*#__PURE__*/React.createElement("div", {
+    className: "p-5 fade-in"
+  }, children));
 }
-
-function Button({ children, onClick, variant = 'primary', size = 'md', disabled, icon: Icon }) {
-  const sizes = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-5 py-2.5 text-sm' };
+function Button({
+  children,
+  onClick,
+  variant = 'primary',
+  size = 'md',
+  disabled,
+  icon: Icon
+}) {
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-5 py-2.5 text-sm'
+  };
   const variants = {
     primary: 'bg-[#1F4A3A] hover:bg-[#163428] text-white border border-[#1F4A3A]',
     secondary: 'bg-white hover:bg-[#F5F2EC] text-[#0F1F1A] border border-[#D9D4C7]',
-    ghost: 'bg-transparent hover:bg-[#F5F2EC] text-[#1F4A3A] border border-transparent',
+    ghost: 'bg-transparent hover:bg-[#F5F2EC] text-[#1F4A3A] border border-transparent'
   };
-  return (
-    <button onClick={onClick} disabled={disabled} className={`${sizes[size]} ${variants[variant]} rounded-sm font-body font-medium tracking-tight inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}>
-      {Icon && <Icon size={14} />}{children}
-    </button>
-  );
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    disabled: disabled,
+    className: `${sizes[size]} ${variants[variant]} rounded-sm font-body font-medium tracking-tight inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`
+  }, Icon && /*#__PURE__*/React.createElement(Icon, {
+    size: 14
+  }), children);
 }
-
-function TextInput({ label, value, onChange, placeholder, multiline, rows = 2 }) {
-  return (
-    <div className="mb-3">
-      {label && <label className="block text-xs font-body font-medium text-[#52605A] mb-1 uppercase" style={{ letterSpacing: '0.04em' }}>{label}</label>}
-      {multiline ? (
-        <textarea value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-          className="w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0] resize-vertical" />
-      ) : (
-        <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0]" />
-      )}
-    </div>
-  );
+function TextInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  multiline,
+  rows = 2
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "mb-3"
+  }, label && /*#__PURE__*/React.createElement("label", {
+    className: "block text-xs font-body font-medium text-[#52605A] mb-1 uppercase",
+    style: {
+      letterSpacing: '0.04em'
+    }
+  }, label), multiline ? /*#__PURE__*/React.createElement("textarea", {
+    value: value || '',
+    onChange: e => onChange(e.target.value),
+    placeholder: placeholder,
+    rows: rows,
+    className: "w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0] resize-vertical"
+  }) : /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: value || '',
+    onChange: e => onChange(e.target.value),
+    placeholder: placeholder,
+    className: "w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0]"
+  }));
 }
-
-function Select({ label, value, onChange, options }) {
-  return (
-    <div className="mb-3">
-      {label && <label className="block text-xs font-body font-medium text-[#52605A] mb-1 uppercase" style={{ letterSpacing: '0.04em' }}>{label}</label>}
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A]">
-        <option value="">— select —</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+function Select({
+  label,
+  value,
+  onChange,
+  options
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "mb-3"
+  }, label && /*#__PURE__*/React.createElement("label", {
+    className: "block text-xs font-body font-medium text-[#52605A] mb-1 uppercase",
+    style: {
+      letterSpacing: '0.04em'
+    }
+  }, label), /*#__PURE__*/React.createElement("select", {
+    value: value || '',
+    onChange: e => onChange(e.target.value),
+    className: "w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A]"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "— select —"), options.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o,
+    value: o
+  }, o))));
 }
-
-function Badge({ children, color = 'neutral' }) {
+function Badge({
+  children,
+  color = 'neutral'
+}) {
   const colors = {
     neutral: 'bg-[#F1EDE4] text-[#6B6354] border-[#C7BFAB]',
     success: 'bg-[#E8EDE8] text-[#2F4A3A] border-[#9FB5A4]',
     warn: 'bg-[#FBE7A1] text-[#7A5800] border-[#E0BB3F]',
-    danger: 'bg-[#FCE7E2] text-[#8B2D1A] border-[#E5A89B]',
+    danger: 'bg-[#FCE7E2] text-[#8B2D1A] border-[#E5A89B]'
   };
-  return <span className={`inline-block px-2 py-0.5 text-[10px] font-body font-medium uppercase rounded-sm border ${colors[color]}`} style={{ letterSpacing: '0.05em' }}>{children}</span>;
+  return /*#__PURE__*/React.createElement("span", {
+    className: `inline-block px-2 py-0.5 text-[10px] font-body font-medium uppercase rounded-sm border ${colors[color]}`,
+    style: {
+      letterSpacing: '0.05em'
+    }
+  }, children);
 }
 
 // ===========================
 // SENSITIVITIES EDITOR
 // ===========================
 
-const SENS_GROUPS = [
-  { title: 'Statutory ecological (Regulation 2(1))', items: [
-    { key: 'sssi', label: 'SSSI', distUnit: 'km' }, { key: 'spa', label: 'Special Protection Area (SPA)', distUnit: 'km' },
-    { key: 'sac', label: 'Special Area of Conservation (SAC)', distUnit: 'km' }, { key: 'ramsar', label: 'Ramsar Wetland Site', distUnit: 'km' },
-  ]},
-  { title: 'Landscape designations', items: [
-    { key: 'nationalPark', label: 'National Park', distUnit: 'km' }, { key: 'aonb', label: 'AONB', distUnit: 'km' },
-    { key: 'unesco', label: 'UNESCO World Heritage Site', distUnit: 'km' }, { key: 'greenBelt', label: 'Green Belt', onSiteOnly: true },
-    { key: 'registeredParkGarden', label: 'Registered Park and Garden', distUnit: 'km' },
-  ]},
-  { title: 'Heritage', items: [
-    { key: 'conservationArea', label: 'Conservation Area', distUnit: 'm' }, { key: 'scheduledMonument', label: 'Scheduled Monument', distUnit: 'km' },
-    { key: 'listedBuilding', label: 'Listed Building', distUnit: 'm' },
-  ]},
-  { title: 'Biodiversity (other)', items: [
-    { key: 'ancientWoodland', label: 'Ancient Woodland', distUnit: 'km' }, { key: 'nationalNatureReserve', label: 'National Nature Reserve', distUnit: 'km' },
-    { key: 'localNatureReserve', label: 'Local Nature Reserve', distUnit: 'km' }, { key: 'localWildlifeSite', label: 'Local Wildlife Site / SINC', distUnit: 'km' },
-  ]},
-  { title: 'Environmental constraints', items: [
-    { key: 'aqma', label: 'AQMA', distUnit: 'km' }, { key: 'floodZone3', label: 'Flood Zone 3 (high risk)', onSiteOnly: true },
-    { key: 'floodZone2', label: 'Flood Zone 2 (medium risk)', onSiteOnly: true }, { key: 'agriculturalLand', label: 'Agricultural Land (Grades 1–3)', special: 'agland' },
-    { key: 'publicRightsOfWay', label: 'Public Rights of Way', onSiteOnly: true },
-  ]},
-];
-
-function ReceptorSummary({ sens }) {
+const SENS_GROUPS = [{
+  title: 'Statutory ecological (Regulation 2(1))',
+  items: [{
+    key: 'sssi',
+    label: 'SSSI',
+    distUnit: 'km'
+  }, {
+    key: 'spa',
+    label: 'Special Protection Area (SPA)',
+    distUnit: 'km'
+  }, {
+    key: 'sac',
+    label: 'Special Area of Conservation (SAC)',
+    distUnit: 'km'
+  }, {
+    key: 'ramsar',
+    label: 'Ramsar Wetland Site',
+    distUnit: 'km'
+  }]
+}, {
+  title: 'Landscape designations',
+  items: [{
+    key: 'nationalPark',
+    label: 'National Park',
+    distUnit: 'km'
+  }, {
+    key: 'aonb',
+    label: 'AONB',
+    distUnit: 'km'
+  }, {
+    key: 'unesco',
+    label: 'UNESCO World Heritage Site',
+    distUnit: 'km'
+  }, {
+    key: 'greenBelt',
+    label: 'Green Belt',
+    onSiteOnly: true
+  }, {
+    key: 'registeredParkGarden',
+    label: 'Registered Park and Garden',
+    distUnit: 'km'
+  }]
+}, {
+  title: 'Heritage',
+  items: [{
+    key: 'conservationArea',
+    label: 'Conservation Area',
+    distUnit: 'm'
+  }, {
+    key: 'scheduledMonument',
+    label: 'Scheduled Monument',
+    distUnit: 'km'
+  }, {
+    key: 'listedBuilding',
+    label: 'Listed Building',
+    distUnit: 'm'
+  }]
+}, {
+  title: 'Biodiversity (other)',
+  items: [{
+    key: 'ancientWoodland',
+    label: 'Ancient Woodland',
+    distUnit: 'km'
+  }, {
+    key: 'nationalNatureReserve',
+    label: 'National Nature Reserve',
+    distUnit: 'km'
+  }, {
+    key: 'localNatureReserve',
+    label: 'Local Nature Reserve',
+    distUnit: 'km'
+  }, {
+    key: 'localWildlifeSite',
+    label: 'Local Wildlife Site / SINC',
+    distUnit: 'km'
+  }]
+}, {
+  title: 'Environmental constraints',
+  items: [{
+    key: 'aqma',
+    label: 'AQMA',
+    distUnit: 'km'
+  }, {
+    key: 'floodZone3',
+    label: 'Flood Zone 3 (high risk)',
+    onSiteOnly: true
+  }, {
+    key: 'floodZone2',
+    label: 'Flood Zone 2 (medium risk)',
+    onSiteOnly: true
+  }, {
+    key: 'agriculturalLand',
+    label: 'Agricultural Land (Grades 1–3)',
+    special: 'agland'
+  }, {
+    key: 'publicRightsOfWay',
+    label: 'Public Rights of Way',
+    onSiteOnly: true
+  }]
+}];
+function ReceptorSummary({
+  sens
+}) {
   if (!sens.receptors || !sens.receptors.length) return null;
-  return (
-    <div className="col-span-12 text-xs text-[#52605A] font-body pl-1 pt-0.5 leading-relaxed">
-      <span className="text-[#8B8472]">Receptors: </span>
-      {sens.receptors.map((r, i) => (
-        <span key={i}>
-          {i > 0 && '; '}
-          <span className="font-medium text-[#0F1F1A]">{r.name}</span> · {r.distanceText} {r.bearing}
-        </span>
-      ))}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "col-span-12 text-xs text-[#52605A] font-body pl-1 pt-0.5 leading-relaxed"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[#8B8472]"
+  }, "Receptors: "), sens.receptors.map((r, i) => /*#__PURE__*/React.createElement("span", {
+    key: i
+  }, i > 0 && '; ', /*#__PURE__*/React.createElement("span", {
+    className: "font-medium text-[#0F1F1A]"
+  }, r.name), " · ", r.distanceText, " ", r.bearing)));
 }
-
-function SensitivitiesEditor({ sensitivities, onChange }) {
-  const update = (key, patch) => onChange({ ...sensitivities, [key]: { ...sensitivities[key], ...patch } });
-  return (
-    <div className="space-y-5">
-      {SENS_GROUPS.map(group => (
-        <div key={group.title}>
-          <h3 className="text-xs font-body font-semibold text-[#52605A] uppercase tracking-wider mb-2.5" style={{ letterSpacing: '0.06em' }}>{group.title}</h3>
-          <div className="space-y-2">
-            {group.items.map(item => {
-              const sens = sensitivities[item.key] || {};
-              const col = flagColor(sens.flag);
-              return (
-                <div key={item.key} className="grid grid-cols-12 gap-2 items-start bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm p-2.5">
-                  <div className="col-span-12 sm:col-span-4 text-sm font-body text-[#0F1F1A] pt-1.5 font-medium">{item.label}</div>
-                  <div className="col-span-6 sm:col-span-3">
-                    <select value={sens.flag || 'unknown'} onChange={(e) => update(item.key, { flag: e.target.value })}
-                      className="w-full px-2 py-1.5 text-xs font-body bg-white border rounded-sm focus:outline-none focus:border-[#1F4A3A]"
-                      style={{ borderColor: col.border, color: col.text, background: col.bg }}>
-                      <option value="on_site">On site</option>
-                      {!item.onSiteOnly && <option value="within_1km">Within 1 km</option>}
-                      {!item.onSiteOnly && <option value="within_5km">Within 5 km</option>}
-                      {!item.onSiteOnly && <option value="within_search_area">Within search area</option>}
-                      <option value="not_detected">Not detected</option>
-                      <option value="unknown">Unknown</option>
-                    </select>
-                  </div>
-                  <div className="col-span-6 sm:col-span-2">
-                    {item.distUnit && (
-                      <div className="relative">
-                        <input type="number" step="0.01"
-                          value={item.distUnit === 'm' ? (sens.nearestDistanceM ?? '') : (sens.nearestDistanceKm ?? '')}
-                          onChange={(e) => { const v = e.target.value === '' ? null : parseFloat(e.target.value); update(item.key, item.distUnit === 'm' ? { nearestDistanceM: v } : { nearestDistanceKm: v }); }}
-                          placeholder="dist"
-                          className="w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]" />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B8472] font-mono pointer-events-none">{item.distUnit}</span>
-                      </div>
-                    )}
-                    {item.special === 'agland' && (
-                      <input type="text" value={sens.grade || ''} onChange={(e) => update(item.key, { grade: e.target.value })} placeholder="Grade"
-                        className="w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]" />
-                    )}
-                  </div>
-                  <div className="col-span-12 sm:col-span-3">
-                    {!item.onSiteOnly && !item.special && (
-                      <input type="text" value={(sens.names || []).join('; ')}
-                        onChange={(e) => update(item.key, { names: e.target.value.split(';').map(s => s.trim()).filter(Boolean) })}
-                        placeholder="Named sites"
-                        className="w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]" />
-                    )}
-                  </div>
-                  <ReceptorSummary sens={sens} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+function SensitivitiesEditor({
+  sensitivities,
+  onChange
+}) {
+  const update = (key, patch) => onChange({
+    ...sensitivities,
+    [key]: {
+      ...sensitivities[key],
+      ...patch
+    }
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, SENS_GROUPS.map(group => /*#__PURE__*/React.createElement("div", {
+    key: group.title
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-xs font-body font-semibold text-[#52605A] uppercase tracking-wider mb-2.5",
+    style: {
+      letterSpacing: '0.06em'
+    }
+  }, group.title), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, group.items.map(item => {
+    const sens = sensitivities[item.key] || {};
+    const col = flagColor(sens.flag);
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.key,
+      className: "grid grid-cols-12 gap-2 items-start bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm p-2.5"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "col-span-12 sm:col-span-4 text-sm font-body text-[#0F1F1A] pt-1.5 font-medium"
+    }, item.label), /*#__PURE__*/React.createElement("div", {
+      className: "col-span-6 sm:col-span-3"
+    }, /*#__PURE__*/React.createElement("select", {
+      value: sens.flag || 'unknown',
+      onChange: e => update(item.key, {
+        flag: e.target.value
+      }),
+      className: "w-full px-2 py-1.5 text-xs font-body bg-white border rounded-sm focus:outline-none focus:border-[#1F4A3A]",
+      style: {
+        borderColor: col.border,
+        color: col.text,
+        background: col.bg
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: "on_site"
+    }, "On site"), !item.onSiteOnly && /*#__PURE__*/React.createElement("option", {
+      value: "within_1km"
+    }, "Within 1 km"), !item.onSiteOnly && /*#__PURE__*/React.createElement("option", {
+      value: "within_5km"
+    }, "Within 5 km"), !item.onSiteOnly && /*#__PURE__*/React.createElement("option", {
+      value: "within_search_area"
+    }, "Within search area"), /*#__PURE__*/React.createElement("option", {
+      value: "not_detected"
+    }, "Not detected"), /*#__PURE__*/React.createElement("option", {
+      value: "unknown"
+    }, "Unknown"))), /*#__PURE__*/React.createElement("div", {
+      className: "col-span-6 sm:col-span-2"
+    }, item.distUnit && /*#__PURE__*/React.createElement("div", {
+      className: "relative"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: item.distUnit === 'm' ? sens.nearestDistanceM ?? '' : sens.nearestDistanceKm ?? '',
+      onChange: e => {
+        const v = e.target.value === '' ? null : parseFloat(e.target.value);
+        update(item.key, item.distUnit === 'm' ? {
+          nearestDistanceM: v
+        } : {
+          nearestDistanceKm: v
+        });
+      },
+      placeholder: "dist",
+      className: "w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B8472] font-mono pointer-events-none"
+    }, item.distUnit)), item.special === 'agland' && /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: sens.grade || '',
+      onChange: e => update(item.key, {
+        grade: e.target.value
+      }),
+      placeholder: "Grade",
+      className: "w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]"
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "col-span-12 sm:col-span-3"
+    }, !item.onSiteOnly && !item.special && /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: (sens.names || []).join('; '),
+      onChange: e => update(item.key, {
+        names: e.target.value.split(';').map(s => s.trim()).filter(Boolean)
+      }),
+      placeholder: "Named sites",
+      className: "w-full px-2 py-1.5 text-xs font-body bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A]"
+    })), /*#__PURE__*/React.createElement(ReceptorSummary, {
+      sens: sens
+    }));
+  })))));
 }
 
 // ===========================
 // DEV DETAILS FORM
 // ===========================
 
-const DEV_FIELD_GROUPS = [
-  { title: 'Site & application', fields: [
-    { key: 'siteName', label: 'Site name / project reference', placeholder: 'e.g. Waltham Abbey, WA/Q251036' },
-    { key: 'siteAreaHa', label: 'Site area (ha)', placeholder: 'e.g. 1.4' },
-    { key: 'ngr', label: 'NGR', placeholder: 'e.g. TL 38123 00567' },
-    { key: 'localAuthority', label: 'Local Planning Authority', placeholder: 'e.g. Epping Forest District Council' },
-    { key: 'localPlan', label: 'Local Plan', placeholder: 'e.g. Epping Forest District Local Plan (2023)' },
-    { key: 'applicant', label: 'Applicant', placeholder: 'e.g. [Applicant name]' },
-  ]},
-  { title: 'Development', fields: [
-    { key: 'developmentType', label: 'Development type', select: ['residential', 'residential-led mixed-use', 'commercial', 'commercial-led mixed-use', 'industrial', 'logistics', 'data centre', 'healthcare', 'energy infrastructure', 'transport infrastructure', 'other'] },
-    { key: 'useClass', label: 'Use class(es)', placeholder: 'e.g. C3, E(g), Sui Generis' },
-    { key: 'developmentDescription', label: 'Development description', multiline: true, rows: 3, placeholder: 'e.g. up to 205 residential units (Use Class C3) with flexible commercial floorspace (Use Class E)…' },
-    { key: 'totalDwellings', label: 'Total dwellings', placeholder: 'e.g. 205' },
-    { key: 'commercialFloorspace', label: 'Commercial floorspace (sqm GIA)', placeholder: 'e.g. 1,200' },
-    { key: 'buildingStoreysDescription', label: 'Building heights', placeholder: 'e.g. two buildings of approximately 4–16 storeys' },
-  ]},
-  { title: 'Programme', fields: [
-    { key: 'constructionStart', label: 'Construction start', placeholder: 'e.g. Q3 2027' },
-    { key: 'constructionEnd', label: 'Construction end', placeholder: 'e.g. Q2 2030' },
-    { key: 'constructionPeriod', label: 'Construction period (text)', placeholder: 'e.g. approximately 2.5 years' },
-  ]},
-  { title: 'Context & receptors', fields: [
-    { key: 'siteCurrentUse', label: 'Site current use', placeholder: 'e.g. the former Thames Valley Police Station, vacant since November 2025' },
-    { key: 'siteHistoricalUse', label: 'Site historical use', placeholder: 'e.g. previously developed land in continuous occupation' },
-    { key: 'nearestReceptorDistance', label: 'Nearest residential receptor distance', placeholder: 'e.g. 15 m to the south' },
-    { key: 'siteBoundaries', label: 'Site boundaries', placeholder: 'e.g. Sewardstone Road to the west and residential gardens to the east' },
-    { key: 'keyRoads', label: 'Key roads', placeholder: 'e.g. Sewardstone Road and the A121' },
-    { key: 'constructionAccessRoute', label: 'Construction access route', placeholder: 'e.g. the existing site access off Sewardstone Road' },
-    { key: 'prevailingWindNote', label: 'Prevailing wind direction', placeholder: 'e.g. south-westerly winds' },
-    { key: 'carParkingStrategy', label: 'Car parking strategy', placeholder: 'e.g. car-free other than Blue Badge spaces' },
-    { key: 'numberOfViewpoints', label: 'Number of HTVIA viewpoints', placeholder: 'e.g. 14' },
-    { key: 'localWasteMineralsPlan', label: 'Local Minerals & Waste Plan', placeholder: 'e.g. Essex Minerals Local Plan (2014) & Waste Local Plan (2017)' },
-  ]},
-];
-
-function DevDetailsForm({ dev, onChange }) {
-  const update = (k, v) => onChange({ ...dev, [k]: v });
-  return (
-    <div className="space-y-6">
-      {DEV_FIELD_GROUPS.map(group => (
-        <div key={group.title}>
-          <h3 className="text-xs font-body font-semibold text-[#52605A] uppercase tracking-wider mb-1" style={{ letterSpacing: '0.06em' }}>{group.title}</h3>
-          {group.note && <p className="text-xs text-[#8B8472] mb-3 font-body italic">{group.note}</p>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-2">
-            {group.fields.map(f => (
-              f.select ? (
-                <Select key={f.key} label={f.label} value={dev[f.key]} onChange={(v) => update(f.key, v)} options={f.select} />
-              ) : (
-                <div key={f.key} className={f.multiline ? 'sm:col-span-2' : ''}>
-                  <TextInput label={f.label} value={dev[f.key]} onChange={(v) => update(f.key, v)} placeholder={f.placeholder} multiline={f.multiline} rows={f.rows} />
-                </div>
-              )
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+const DEV_FIELD_GROUPS = [{
+  title: 'Site & application',
+  fields: [{
+    key: 'siteName',
+    label: 'Site name / project reference',
+    placeholder: 'e.g. Waltham Abbey, WA/Q251036'
+  }, {
+    key: 'siteAreaHa',
+    label: 'Site area (ha)',
+    placeholder: 'e.g. 1.4'
+  }, {
+    key: 'ngr',
+    label: 'NGR',
+    placeholder: 'e.g. TL 38123 00567'
+  }, {
+    key: 'localAuthority',
+    label: 'Local Planning Authority',
+    placeholder: 'e.g. Epping Forest District Council'
+  }, {
+    key: 'localPlan',
+    label: 'Local Plan',
+    placeholder: 'e.g. Epping Forest District Local Plan (2023)'
+  }, {
+    key: 'applicant',
+    label: 'Applicant',
+    placeholder: 'e.g. [Applicant name]'
+  }]
+}, {
+  title: 'Development',
+  fields: [{
+    key: 'developmentType',
+    label: 'Development type',
+    select: ['residential', 'residential-led mixed-use', 'commercial', 'commercial-led mixed-use', 'industrial', 'logistics', 'data centre', 'healthcare', 'energy infrastructure', 'transport infrastructure', 'other']
+  }, {
+    key: 'useClass',
+    label: 'Use class(es)',
+    placeholder: 'e.g. C3, E(g), Sui Generis'
+  }, {
+    key: 'developmentDescription',
+    label: 'Development description',
+    multiline: true,
+    rows: 3,
+    placeholder: 'e.g. up to 205 residential units (Use Class C3) with flexible commercial floorspace (Use Class E)…'
+  }, {
+    key: 'totalDwellings',
+    label: 'Total dwellings',
+    placeholder: 'e.g. 205'
+  }, {
+    key: 'commercialFloorspace',
+    label: 'Commercial floorspace (sqm GIA)',
+    placeholder: 'e.g. 1,200'
+  }, {
+    key: 'buildingStoreysDescription',
+    label: 'Building heights',
+    placeholder: 'e.g. two buildings of approximately 4–16 storeys'
+  }]
+}, {
+  title: 'Programme',
+  fields: [{
+    key: 'constructionStart',
+    label: 'Construction start',
+    placeholder: 'e.g. Q3 2027'
+  }, {
+    key: 'constructionEnd',
+    label: 'Construction end',
+    placeholder: 'e.g. Q2 2030'
+  }, {
+    key: 'constructionPeriod',
+    label: 'Construction period (text)',
+    placeholder: 'e.g. approximately 2.5 years'
+  }]
+}, {
+  title: 'Context & receptors',
+  fields: [{
+    key: 'siteCurrentUse',
+    label: 'Site current use',
+    placeholder: 'e.g. the former Thames Valley Police Station, vacant since November 2025'
+  }, {
+    key: 'siteHistoricalUse',
+    label: 'Site historical use',
+    placeholder: 'e.g. previously developed land in continuous occupation'
+  }, {
+    key: 'nearestReceptorDistance',
+    label: 'Nearest residential receptor distance',
+    placeholder: 'e.g. 15 m to the south'
+  }, {
+    key: 'siteBoundaries',
+    label: 'Site boundaries',
+    placeholder: 'e.g. Sewardstone Road to the west and residential gardens to the east'
+  }, {
+    key: 'keyRoads',
+    label: 'Key roads',
+    placeholder: 'e.g. Sewardstone Road and the A121'
+  }, {
+    key: 'constructionAccessRoute',
+    label: 'Construction access route',
+    placeholder: 'e.g. the existing site access off Sewardstone Road'
+  }, {
+    key: 'prevailingWindNote',
+    label: 'Prevailing wind direction',
+    placeholder: 'e.g. south-westerly winds'
+  }, {
+    key: 'carParkingStrategy',
+    label: 'Car parking strategy',
+    placeholder: 'e.g. car-free other than Blue Badge spaces'
+  }, {
+    key: 'numberOfViewpoints',
+    label: 'Number of HTVIA viewpoints',
+    placeholder: 'e.g. 14'
+  }, {
+    key: 'localWasteMineralsPlan',
+    label: 'Local Minerals & Waste Plan',
+    placeholder: 'e.g. Essex Minerals Local Plan (2014) & Waste Local Plan (2017)'
+  }]
+}];
+function DevDetailsForm({
+  dev,
+  onChange
+}) {
+  const update = (k, v) => onChange({
+    ...dev,
+    [k]: v
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6"
+  }, DEV_FIELD_GROUPS.map(group => /*#__PURE__*/React.createElement("div", {
+    key: group.title
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-xs font-body font-semibold text-[#52605A] uppercase tracking-wider mb-1",
+    style: {
+      letterSpacing: '0.06em'
+    }
+  }, group.title), group.note && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-[#8B8472] mb-3 font-body italic"
+  }, group.note), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-2"
+  }, group.fields.map(f => f.select ? /*#__PURE__*/React.createElement(Select, {
+    key: f.key,
+    label: f.label,
+    value: dev[f.key],
+    onChange: v => update(f.key, v),
+    options: f.select
+  }) : /*#__PURE__*/React.createElement("div", {
+    key: f.key,
+    className: f.multiline ? 'sm:col-span-2' : ''
+  }, /*#__PURE__*/React.createElement(TextInput, {
+    label: f.label,
+    value: dev[f.key],
+    onChange: v => update(f.key, v),
+    placeholder: f.placeholder,
+    multiline: f.multiline,
+    rows: f.rows
+  })))))));
 }
 
 // ===========================
 // TOPIC DOCS EDITOR
 // ===========================
 
-function TopicDocsEditor({ topicDocs, onChange }) {
-  const update = (topicId, docs) => onChange({ ...topicDocs, [topicId]: docs });
-  const addDoc = (topicId) => update(topicId, [...(topicDocs[topicId] || []), '']);
+function TopicDocsEditor({
+  topicDocs,
+  onChange
+}) {
+  const update = (topicId, docs) => onChange({
+    ...topicDocs,
+    [topicId]: docs
+  });
+  const addDoc = topicId => update(topicId, [...(topicDocs[topicId] || []), '']);
   const removeDoc = (topicId, i) => update(topicId, (topicDocs[topicId] || []).filter((_, idx) => idx !== i));
   const updateDoc = (topicId, i, value) => update(topicId, (topicDocs[topicId] || []).map((d, idx) => idx === i ? value : d));
-
-  return (
-    <div className="space-y-5">
-      <p className="text-xs font-body text-[#52605A] italic leading-relaxed">
-        List the documents that will accompany the planning application under each topic. Leave a topic empty if no specialist assessment is being submitted — the rationale will adjust to say so explicitly (e.g. "no formal wind microclimate assessment is considered necessary").
-      </p>
-      {TOPICS.map(topic => {
-        const docs = topicDocs[topic.id] || [];
-        return (
-          <div key={topic.id} className="bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm p-3">
-            <div className="flex items-baseline justify-between gap-3 mb-2">
-              <h4 className="font-display text-sm text-[#0F1F1A]" style={{ fontWeight: 500 }}>{topic.name}</h4>
-              <Button size="sm" variant="ghost" icon={Plus} onClick={() => addDoc(topic.id)}>Add document</Button>
-            </div>
-            {docs.length === 0 ? (
-              <p className="text-xs text-[#8B8472] italic font-body">No documents — rationale will read "no formal {topic.name.toLowerCase().split(/[(,]/)[0].trim()} assessment is considered necessary".</p>
-            ) : (
-              <div className="space-y-1.5">
-                {docs.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input type="text" value={d} onChange={(e) => updateDoc(topic.id, i, e.target.value)} placeholder="e.g. Transport Assessment"
-                      className="flex-1 px-2.5 py-1.5 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0]" />
-                    <button onClick={() => removeDoc(topic.id, i)} className="p-1.5 text-[#8B8472] hover:text-[#8B2D1A] hover:bg-[#FCE7E2] rounded-sm transition-colors" title="Remove document">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-xs font-body text-[#52605A] italic leading-relaxed"
+  }, "List the documents that will accompany the planning application under each topic. Leave a topic empty if no specialist assessment is being submitted — the rationale will adjust to say so explicitly (e.g. \"no formal wind microclimate assessment is considered necessary\")."), TOPICS.map(topic => {
+    const docs = topicDocs[topic.id] || [];
+    return /*#__PURE__*/React.createElement("div", {
+      key: topic.id,
+      className: "bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm p-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-baseline justify-between gap-3 mb-2"
+    }, /*#__PURE__*/React.createElement("h4", {
+      className: "font-display text-sm text-[#0F1F1A]",
+      style: {
+        fontWeight: 500
+      }
+    }, topic.name), /*#__PURE__*/React.createElement(Button, {
+      size: "sm",
+      variant: "ghost",
+      icon: Plus,
+      onClick: () => addDoc(topic.id)
+    }, "Add document")), docs.length === 0 ? /*#__PURE__*/React.createElement("p", {
+      className: "text-xs text-[#8B8472] italic font-body"
+    }, "No documents — rationale will read \"no formal ", topic.name.toLowerCase().split(/[(,]/)[0].trim(), " assessment is considered necessary\".") : /*#__PURE__*/React.createElement("div", {
+      className: "space-y-1.5"
+    }, docs.map((d, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: d,
+      onChange: e => updateDoc(topic.id, i, e.target.value),
+      placeholder: "e.g. Transport Assessment",
+      className: "flex-1 px-2.5 py-1.5 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0]"
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => removeDoc(topic.id, i),
+      className: "p-1.5 text-[#8B8472] hover:text-[#8B2D1A] hover:bg-[#FCE7E2] rounded-sm transition-colors",
+      title: "Remove document"
+    }, /*#__PURE__*/React.createElement(X, {
+      size: 14
+    }))))));
+  }));
 }
 
 // ===========================
 // TOPIC CARD
 // ===========================
 
-function TopicCard({ topic, sens, dev, docs, customText, onCustomTextChange, scopedIn, onScopedInChange, onResetText }) {
+function TopicCard({
+  topic,
+  sens,
+  dev,
+  docs,
+  customText,
+  onCustomTextChange,
+  scopedIn,
+  onScopedInChange,
+  onResetText
+}) {
   const [editing, setEditing] = useState(false);
   const generatedText = useMemo(() => topic.template(sens, dev, docs), [topic, sens, dev, docs]);
   const displayText = customText != null ? customText : generatedText;
   const flags = topic.flags(sens);
   const docCount = (docs || []).filter(d => d && d.trim()).length;
-
-  return (
-    <div className="bg-white border border-[#D9D4C7] rounded-sm overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-[#E8E4D8] flex items-start justify-between gap-3 bg-[#FBFAF7]">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <h3 className="font-display text-lg text-[#0F1F1A] leading-tight" style={{ fontWeight: 500 }}>{topic.name}</h3>
-            <span className="text-xs font-body text-[#8B8472] italic">{topic.category}</span>
-          </div>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <label className="inline-flex items-center gap-1.5 text-xs font-body text-[#52605A] cursor-pointer">
-              <input type="checkbox" checked={!scopedIn} onChange={(e) => onScopedInChange(!e.target.checked)} className="accent-[#1F4A3A]" />
-              Scope out
-            </label>
-            <Badge color={topic.conclusion.toLowerCase().includes('beneficial') ? 'success' : 'neutral'}>{topic.conclusion}</Badge>
-            <Badge color={docCount > 0 ? 'success' : 'neutral'}>{docCount === 0 ? 'No supporting docs' : `${docCount} supporting doc${docCount === 1 ? '' : 's'}`}</Badge>
-            {customText != null && <Badge color="warn">Edited</Badge>}
-            {flags.map((f, i) => (
-              <Badge key={i} color={f.level === 'warn' ? 'danger' : 'warn'}><AlertTriangle size={9} className="inline mr-0.5" />{f.text}</Badge>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {customText != null && <Button size="sm" variant="ghost" icon={RotateCcw} onClick={onResetText}>Reset</Button>}
-          <Button size="sm" variant="secondary" icon={editing ? Check : Edit3} onClick={() => setEditing(!editing)}>{editing ? 'Done' : 'Edit'}</Button>
-        </div>
-      </div>
-
-      {scopedIn && (
-        <div className="px-5 py-2.5 bg-[#FCE7E2] border-b border-[#E5A89B] text-xs font-body text-[#8B2D1A] flex items-center gap-2">
-          <AlertTriangle size={12} />This topic is scoped IN. The rationale describes residual effects; the assessment will form an ES chapter.
-        </div>
-      )}
-
-      <div className="p-5">
-        {editing ? (
-          <textarea value={displayText} onChange={(e) => onCustomTextChange(e.target.value)} rows={10}
-            className="w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] resize-vertical leading-relaxed editable-area" />
-        ) : (
-          <div className="rationale-prose font-body">{renderPlaceholderText(displayText, dev)}</div>
-        )}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-[#D9D4C7] rounded-sm overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-3.5 border-b border-[#E8E4D8] flex items-start justify-between gap-3 bg-[#FBFAF7]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline gap-2 flex-wrap"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-display text-lg text-[#0F1F1A] leading-tight",
+    style: {
+      fontWeight: 500
+    }
+  }, topic.name), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-body text-[#8B8472] italic"
+  }, topic.category)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 mt-1.5 flex-wrap"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "inline-flex items-center gap-1.5 text-xs font-body text-[#52605A] cursor-pointer"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: !scopedIn,
+    onChange: e => onScopedInChange(!e.target.checked),
+    className: "accent-[#1F4A3A]"
+  }), "Scope out"), /*#__PURE__*/React.createElement(Badge, {
+    color: topic.conclusion.toLowerCase().includes('beneficial') ? 'success' : 'neutral'
+  }, topic.conclusion), /*#__PURE__*/React.createElement(Badge, {
+    color: docCount > 0 ? 'success' : 'neutral'
+  }, docCount === 0 ? 'No supporting docs' : `${docCount} supporting doc${docCount === 1 ? '' : 's'}`), customText != null && /*#__PURE__*/React.createElement(Badge, {
+    color: "warn"
+  }, "Edited"), flags.map((f, i) => /*#__PURE__*/React.createElement(Badge, {
+    key: i,
+    color: f.level === 'warn' ? 'danger' : 'warn'
+  }, /*#__PURE__*/React.createElement(AlertTriangle, {
+    size: 9,
+    className: "inline mr-0.5"
+  }), f.text)))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1.5 flex-shrink-0"
+  }, customText != null && /*#__PURE__*/React.createElement(Button, {
+    size: "sm",
+    variant: "ghost",
+    icon: RotateCcw,
+    onClick: onResetText
+  }, "Reset"), /*#__PURE__*/React.createElement(Button, {
+    size: "sm",
+    variant: "secondary",
+    icon: editing ? Check : Edit3,
+    onClick: () => setEditing(!editing)
+  }, editing ? 'Done' : 'Edit'))), scopedIn && /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-2.5 bg-[#FCE7E2] border-b border-[#E5A89B] text-xs font-body text-[#8B2D1A] flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(AlertTriangle, {
+    size: 12
+  }), "This topic is scoped IN. The rationale describes residual effects; the assessment will form an ES chapter."), /*#__PURE__*/React.createElement("div", {
+    className: "p-5"
+  }, editing ? /*#__PURE__*/React.createElement("textarea", {
+    value: displayText,
+    onChange: e => onCustomTextChange(e.target.value),
+    rows: 10,
+    className: "w-full px-3 py-2 text-sm font-body text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] resize-vertical leading-relaxed editable-area"
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "rationale-prose font-body"
+  }, renderPlaceholderText(displayText, dev))));
 }
 
 // ===========================
@@ -1439,52 +2154,84 @@ function App() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [parseMsg, setParseMsg] = useState(null);
-
-  const effectiveDev = useMemo(() => ({ ...dev, developmentTypeLower: dev.developmentType ? dev.developmentType.toLowerCase() : '' }), [dev]);
-  const getDocs = (topicId) => (topicDocs[topicId] || []).filter(d => d && d.trim());
-
+  const effectiveDev = useMemo(() => ({
+    ...dev,
+    developmentTypeLower: dev.developmentType ? dev.developmentType.toLowerCase() : ''
+  }), [dev]);
+  const getDocs = topicId => (topicDocs[topicId] || []).filter(d => d && d.trim());
   const handleParse = () => {
-    if (!rawText.trim()) { setParseMsg({ type: 'err', text: 'Paste the proximity table text first.' }); return; }
+    if (!rawText.trim()) {
+      setParseMsg({
+        type: 'err',
+        text: 'Paste the proximity table text first.'
+      });
+      return;
+    }
     try {
-      const { result, matched } = parseProximityText(rawText);
+      const {
+        result,
+        matched
+      } = parseProximityText(rawText);
       setSensitivities(result);
       const onSite = Object.values(result).filter(v => v.flag === 'on_site').length;
       const nearby = Object.values(result).filter(v => ['within_1km', 'within_5km', 'within_search_area'].includes(v.flag)).length;
       const none = Object.values(result).filter(v => v.flag === 'not_detected').length;
-      setParseMsg({ type: 'ok', text: `Parsed ${matched} designations — ${nearby} nearby, ${onSite} on site, ${none} not detected. Check section 2 and adjust anything that looks off.` });
+      setParseMsg({
+        type: 'ok',
+        text: `Parsed ${matched} designations — ${nearby} nearby, ${onSite} on site, ${none} not detected. Check section 2 and adjust anything that looks off.`
+      });
     } catch (e) {
-      setParseMsg({ type: 'err', text: 'Could not parse that text. Make sure you copied the full table including designation labels.' });
+      setParseMsg({
+        type: 'err',
+        text: 'Could not parse that text. Make sure you copied the full table including designation labels.'
+      });
     }
   };
-
   const handleLoadDemo = () => {
     setRawText(DEMO_TEXT);
-    const { result } = parseProximityText(DEMO_TEXT);
+    const {
+      result
+    } = parseProximityText(DEMO_TEXT);
     setSensitivities(result);
     setDev({
       ...EMPTY_DEV,
-      siteName: 'Waltham Abbey — WA/Q251036 (demo)', siteAreaHa: '1.8', ngr: 'TL 38123 00567',
-      localAuthority: 'Epping Forest District Council', localPlan: 'Epping Forest District Local Plan (2023)',
-      developmentType: 'residential-led mixed-use', keyRoads: 'Sewardstone Road and the A121',
+      siteName: 'Waltham Abbey — WA/Q251036 (demo)',
+      siteAreaHa: '1.8',
+      ngr: 'TL 38123 00567',
+      localAuthority: 'Epping Forest District Council',
+      localPlan: 'Epping Forest District Local Plan (2023)',
+      developmentType: 'residential-led mixed-use',
+      keyRoads: 'Sewardstone Road and the A121',
       prevailingWindNote: 'south-westerly winds',
-      localWasteMineralsPlan: 'Essex Minerals Local Plan (2014) and Waste Local Plan (2017)',
+      localWasteMineralsPlan: 'Essex Minerals Local Plan (2014) and Waste Local Plan (2017)'
     });
     // Demo defaults: mid-rise residential-led scheme in a heritage-sensitive setting.
     // Include heritage and daylight assessments; omit CFD (mid-rise) and townscape (covered under heritage HTVIA).
     setTopicDocs({
       ...DEFAULT_TOPIC_DOCS,
-      daylight: ['Daylight, Sunlight and Overshadowing Assessment'],
+      daylight: ['Daylight, Sunlight and Overshadowing Assessment']
     });
-    setParseMsg({ type: 'ok', text: 'Demo loaded and parsed. Named receptors with exact distances and bearings are shown in section 2.' });
+    setParseMsg({
+      type: 'ok',
+      text: 'Demo loaded and parsed. Named receptors with exact distances and bearings are shown in section 2.'
+    });
   };
-
   const handleReset = () => {
     if (!window.confirm('Reset all inputs and outputs?')) return;
-    setRawText(''); setSensitivities(EMPTY_SENSITIVITIES); setDev(EMPTY_DEV); setTopicDocs(DEFAULT_TOPIC_DOCS); setTopicState({}); setParseMsg(null);
+    setRawText('');
+    setSensitivities(EMPTY_SENSITIVITIES);
+    setDev(EMPTY_DEV);
+    setTopicDocs(DEFAULT_TOPIC_DOCS);
+    setTopicState({});
+    setParseMsg(null);
   };
-
-  const updateTopicState = (id, patch) => setTopicState(s => ({ ...s, [id]: { ...s[id], ...patch } }));
-
+  const updateTopicState = (id, patch) => setTopicState(s => ({
+    ...s,
+    [id]: {
+      ...s[id],
+      ...patch
+    }
+  }));
   const handleCopyAll = () => {
     const lines = [`# EIA Screening — Scoping Out Table`, ''];
     lines.push(`**Site:** ${effectiveDev.siteName || '[Site name]'}  `);
@@ -1503,14 +2250,17 @@ function App() {
       const docCell = docs.length ? docs.join('; ') : '— none —';
       lines.push(`| ${t.name} | ${ts.scopedIn ? 'SCOPED IN' : t.conclusion} | ${docCell} | ${safe} |`);
     });
-    navigator.clipboard.writeText(lines.join('\n')).then(() => { setCopySuccess(true); setTimeout(() => setCopySuccess(false), 2000); });
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    });
   };
 
   // Build a complete self-contained HTML report (sensitivities + topic table + supporting docs)
   // that opens in any browser and pastes cleanly into Word with formatting preserved.
   const handleDownloadHTML = () => {
-    const escHTML = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const fillText = (text) => text.replace(/\{\{([A-Z0-9_]+)\}\}/g, (_, k) => {
+    const escHTML = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fillText = text => text.replace(/\{\{([A-Z0-9_]+)\}\}/g, (_, k) => {
       const v = effectiveDev[toCamelCase(k)];
       return v && String(v).trim() ? escHTML(v) : `<span style="background:#FBE7A1;border:1px solid #E0BB3F;padding:0 4px;border-radius:3px;color:#5A4100;font-family:monospace;font-size:0.9em">${escHTML(k.replace(/_/g, ' ').toLowerCase())}</span>`;
     });
@@ -1520,8 +2270,15 @@ function App() {
     SENS_GROUPS.forEach(group => {
       group.items.forEach(item => {
         const sens = sensitivities[item.key] || {};
-        const flagLabel = ({ on_site: 'On site', within_1km: 'Within 1 km', within_5km: 'Within 5 km', within_search_area: 'Within search area', not_detected: 'Not detected', unknown: 'Unknown' })[sens.flag] || 'Unknown';
-        const dist = item.distUnit === 'm' ? (sens.nearestDistanceM != null ? `${sens.nearestDistanceM} m` : '—') : (sens.nearestDistanceKm != null ? `${sens.nearestDistanceKm} km` : (item.distUnit ? '—' : ''));
+        const flagLabel = {
+          on_site: 'On site',
+          within_1km: 'Within 1 km',
+          within_5km: 'Within 5 km',
+          within_search_area: 'Within search area',
+          not_detected: 'Not detected',
+          unknown: 'Unknown'
+        }[sens.flag] || 'Unknown';
+        const dist = item.distUnit === 'm' ? sens.nearestDistanceM != null ? `${sens.nearestDistanceM} m` : '—' : sens.nearestDistanceKm != null ? `${sens.nearestDistanceKm} km` : item.distUnit ? '—' : '';
         const grade = item.special === 'agland' && sens.grade ? sens.grade : '';
         const receptors = sens.receptors && sens.receptors.length ? sens.receptors.map(r => `${escHTML(r.name)} · ${escHTML(r.distanceText)} ${r.bearing}`).join('<br>') : '';
         sensRows.push(`<tr><td>${escHTML(item.label)}</td><td>${escHTML(flagLabel)}</td><td>${escHTML(dist || grade)}</td><td>${receptors}</td></tr>`);
@@ -1538,7 +2295,6 @@ function App() {
       const docList = docs.length ? docs.map(d => `<li>${escHTML(d)}</li>`).join('') : '<em>None</em>';
       return `<tr><td><strong>${escHTML(t.name)}</strong><br><span style="font-size:0.85em;color:#666;font-style:italic">${escHTML(t.category)}</span></td><td>${escHTML(conclusion)}</td><td>${docs.length ? `<ul style="margin:0;padding-left:18px">${docList}</ul>` : `<em style="color:#999">— none —</em>`}</td><td style="line-height:1.55">${filled}</td></tr>`;
     }).join('');
-
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1562,7 +2318,11 @@ function App() {
     <strong>Site:</strong> ${escHTML(effectiveDev.siteName || '[Site name]')}<br>
     <strong>LPA:</strong> ${escHTML(effectiveDev.localAuthority || '[LPA]')}<br>
     <strong>Development:</strong> ${escHTML(effectiveDev.developmentDescription || '[Development description]')}<br>
-    <strong>Generated:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+    <strong>Generated:</strong> ${new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })}
   </div>
 
   <h2>Site sensitivities</h2>
@@ -1582,17 +2342,21 @@ function App() {
   </div>
 </body>
 </html>`;
-
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([html], {
+      type: 'text/html'
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const safeName = (effectiveDev.siteName || 'eia-screening').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
-    a.href = url; a.download = `${safeName || 'eia-screening'}-${new Date().toISOString().slice(0, 10)}.html`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    a.href = url;
+    a.download = `${safeName || 'eia-screening'}-${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setDownloadSuccess(true); setTimeout(() => setDownloadSuccess(false), 2000);
+    setDownloadSuccess(true);
+    setTimeout(() => setDownloadSuccess(false), 2000);
   };
-
   const placeholderCount = useMemo(() => {
     let count = 0;
     TOPICS.forEach(t => {
@@ -1606,156 +2370,268 @@ function App() {
     });
     return count;
   }, [topicState, sensitivities, effectiveDev, topicDocs]);
-
-  return (
-    <>
-      <div className="min-h-screen font-body" style={{ background: '#F5F2EC', color: '#0F1F1A' }}>
-        <header className="border-b border-[#D9D4C7] bg-[#FBFAF7]">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-baseline justify-between flex-wrap gap-3">
-              <div>
-                <div className="text-xs font-body uppercase tracking-widest text-[#52605A] mb-1" style={{ letterSpacing: '0.15em' }}>EIA Screening Generator</div>
-                <h1 className="font-display text-4xl text-[#0F1F1A] tracking-tight leading-tight" style={{ fontWeight: 400 }}>
-                  Scoping out rationale, <em className="italic" style={{ fontWeight: 300 }}>drafted from your inputs</em>
-                </h1>
-                <p className="text-sm text-[#52605A] mt-2 max-w-2xl font-body leading-relaxed">
-                  Paste the proximity-table text from your screening tool, then fill in known project details. Unknown supporting information stays visible as <span className="placeholder-pill font-mono text-xs">yellow placeholders</span> until filled in.
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <Button onClick={handleLoadDemo} variant="ghost" icon={ListChecks} size="sm">Load Waltham Abbey demo</Button>
-                <Button onClick={handleReset} variant="ghost" icon={RotateCcw} size="sm">Reset all</Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-6 py-8">
-          <Section title="1. Paste proximity text" subtitle="Copy the full output from your screening tool (both the Regulation 2(1) and Additional Designations sections) and paste here."
-            defaultOpen={!Object.values(sensitivities).some(v => v.flag && v.flag !== 'unknown')}
-            action={<Button onClick={handleParse} variant="primary" icon={FileSearch}>Parse text</Button>}>
-            <textarea value={rawText} onChange={(e) => setRawText(e.target.value)}
-              placeholder="Paste here — e.g.&#10;Regulation 2(1) Proximity Detail&#10;Site of Special Scientific Interest&#10;1.07 km&#10;1.&#10;Epping Forest SSSI&#10;SE&#10;1.1km&#10;…"
-              rows={8}
-              className="w-full px-3 py-2.5 text-sm font-mono text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0] resize-vertical leading-relaxed" />
-            {parseMsg && (
-              <div className={`mt-3 px-3 py-2 rounded-sm text-sm font-body flex items-start gap-2 border ${parseMsg.type === 'ok' ? 'bg-[#E8EDE8] border-[#9FB5A4] text-[#2F4A3A]' : 'bg-[#FCE7E2] border-[#E5A89B] text-[#8B2D1A]'}`}>
-                {parseMsg.type === 'ok' ? <Check size={14} className="mt-0.5 flex-shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />}
-                <div>{parseMsg.text}</div>
-              </div>
-            )}
-            <div className="mt-4 px-3 py-2.5 bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm text-xs font-body text-[#52605A] flex items-start gap-2">
-              <Info size={12} className="flex-shrink-0 mt-0.5" />
-              <div>The parser captures each designation's flag, nearest distance, and every named receptor with its individual distance and bearing — these exact distances flow into the rationale text (e.g. "the nearest SSSI (Epping Forest SSSI) lies approximately 1.1 km to the south-east"). Flood zones come through as "unknown" since they load from the EA WMS layer, not the table — set them manually in section 2.</div>
-            </div>
-          </Section>
-
-          <Section title="2. Site sensitivities" subtitle="Edit anything the parser got wrong, or fill in manually. The rationale reacts live to these flags and receptor distances." defaultOpen={true}>
-            <SensitivitiesEditor sensitivities={sensitivities} onChange={setSensitivities} />
-          </Section>
-
-          <Section title="3. Development details" subtitle={`Anything left blank shows as a yellow placeholder. Currently ${placeholderCount} placeholder${placeholderCount === 1 ? '' : 's'} unfilled.`} defaultOpen={false}>
-            <DevDetailsForm dev={dev} onChange={setDev} />
-          </Section>
-
-          <Section title="4. Supporting documents by topic" subtitle="Each topic lists the documents that will accompany the planning application. Leave a topic empty if no specialist assessment is being submitted — the rationale will read 'no formal assessment is considered necessary'." defaultOpen={false}>
-            <TopicDocsEditor topicDocs={topicDocs} onChange={setTopicDocs} />
-          </Section>
-
-          <div className="flex items-baseline justify-between mb-4 mt-10 flex-wrap gap-3">
-            <div>
-              <div className="text-xs font-body uppercase tracking-widest text-[#52605A]" style={{ letterSpacing: '0.15em' }}>Output</div>
-              <h2 className="font-display text-3xl text-[#0F1F1A] tracking-tight" style={{ fontWeight: 400 }}>Scoping-out table</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleDownloadHTML} variant="secondary" icon={downloadSuccess ? Check : Download}>{downloadSuccess ? 'Downloaded' : 'Download HTML'}</Button>
-              <Button onClick={handleCopyAll} variant="primary" icon={copySuccess ? Check : Copy}>{copySuccess ? 'Copied' : 'Copy table (Markdown)'}</Button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {TOPICS.map(topic => {
-              const ts = topicState[topic.id] || {};
-              return (
-                <TopicCard key={topic.id} topic={topic} sens={sensitivities} dev={effectiveDev} docs={getDocs(topic.id)}
-                  customText={ts.customText} onCustomTextChange={(t) => updateTopicState(topic.id, { customText: t })}
-                  scopedIn={!!ts.scopedIn} onScopedInChange={(v) => updateTopicState(topic.id, { scopedIn: v })}
-                  onResetText={() => updateTopicState(topic.id, { customText: null })} />
-              );
-            })}
-          </div>
-
-          <div className="mt-10">
-            <div className="mb-4">
-              <div className="text-xs font-body uppercase tracking-widest text-[#52605A]" style={{ letterSpacing: '0.15em' }}>Consolidated view</div>
-              <h2 className="font-display text-3xl text-[#0F1F1A] tracking-tight" style={{ fontWeight: 400 }}>All sections as a table</h2>
-              <p className="text-sm text-[#52605A] mt-2 max-w-2xl font-body leading-relaxed">A single-table view of everything above — for scrolling review, screenshotting, or selecting and copying directly from the page. Use Download HTML for a self-contained file you can open in a browser or paste into Word.</p>
-            </div>
-            <ConsolidatedTable topics={TOPICS} sensitivities={sensitivities} dev={effectiveDev} topicState={topicState} getDocs={getDocs} />
-          </div>
-
-          <div className="mt-12 pt-6 border-t border-[#D9D4C7] text-xs font-body text-[#52605A] leading-relaxed max-w-3xl">
-            <p className="mb-2"><span className="font-semibold text-[#0F1F1A]">A note on use:</span> this generator drafts screening-style rationale (the argument that a topic does not warrant assessment within an ES). All output is a starting point — the EIA practitioner remains responsible for confirming conclusions, particularly where on-site sensitivities are flagged. Everything runs locally in your browser; no data leaves the page and no tokens are used.</p>
-            <p><span className="font-semibold text-[#0F1F1A]">Placeholders</span> remain visible as yellow pills. Fill a Development Details field and every matching placeholder across the table updates live. The Copy and Download buttons convert unfilled placeholders to <span className="font-mono">[bracketed]</span> markers (Markdown) or keep them as visible yellow pills (HTML).</p>
-          </div>
-        </main>
-      </div>
-    </>
-  );
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "min-h-screen font-body",
+    style: {
+      background: '#F5F2EC',
+      color: '#0F1F1A'
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    className: "border-b border-[#D9D4C7] bg-[#FBFAF7]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "max-w-7xl mx-auto px-6 py-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between flex-wrap gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-body uppercase tracking-widest text-[#52605A] mb-1",
+    style: {
+      letterSpacing: '0.15em'
+    }
+  }, "EIA Screening Generator"), /*#__PURE__*/React.createElement("h1", {
+    className: "font-display text-4xl text-[#0F1F1A] tracking-tight leading-tight",
+    style: {
+      fontWeight: 400
+    }
+  }, "Scoping out rationale, ", /*#__PURE__*/React.createElement("em", {
+    className: "italic",
+    style: {
+      fontWeight: 300
+    }
+  }, "drafted from your inputs")), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[#52605A] mt-2 max-w-2xl font-body leading-relaxed"
+  }, "Paste the proximity-table text from your screening tool, then fill in known project details. Unknown supporting information stays visible as ", /*#__PURE__*/React.createElement("span", {
+    className: "placeholder-pill font-mono text-xs"
+  }, "yellow placeholders"), " until filled in.")), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-end gap-2"
+  }, /*#__PURE__*/React.createElement(Button, {
+    onClick: handleLoadDemo,
+    variant: "ghost",
+    icon: ListChecks,
+    size: "sm"
+  }, "Load Waltham Abbey demo"), /*#__PURE__*/React.createElement(Button, {
+    onClick: handleReset,
+    variant: "ghost",
+    icon: RotateCcw,
+    size: "sm"
+  }, "Reset all"))))), /*#__PURE__*/React.createElement("main", {
+    className: "max-w-7xl mx-auto px-6 py-8"
+  }, /*#__PURE__*/React.createElement(Section, {
+    title: "1. Paste proximity text",
+    subtitle: "Copy the full output from your screening tool (both the Regulation 2(1) and Additional Designations sections) and paste here.",
+    defaultOpen: !Object.values(sensitivities).some(v => v.flag && v.flag !== 'unknown'),
+    action: /*#__PURE__*/React.createElement(Button, {
+      onClick: handleParse,
+      variant: "primary",
+      icon: FileSearch
+    }, "Parse text")
+  }, /*#__PURE__*/React.createElement("textarea", {
+    value: rawText,
+    onChange: e => setRawText(e.target.value),
+    placeholder: "Paste here — e.g.\nRegulation 2(1) Proximity Detail\nSite of Special Scientific Interest\n1.07 km\n1.\nEpping Forest SSSI\nSE\n1.1km\n…",
+    rows: 8,
+    className: "w-full px-3 py-2.5 text-sm font-mono text-[#0F1F1A] bg-white border border-[#D9D4C7] rounded-sm focus:outline-none focus:border-[#1F4A3A] focus:ring-1 focus:ring-[#1F4A3A] placeholder:text-[#B8B0A0] resize-vertical leading-relaxed"
+  }), parseMsg && /*#__PURE__*/React.createElement("div", {
+    className: `mt-3 px-3 py-2 rounded-sm text-sm font-body flex items-start gap-2 border ${parseMsg.type === 'ok' ? 'bg-[#E8EDE8] border-[#9FB5A4] text-[#2F4A3A]' : 'bg-[#FCE7E2] border-[#E5A89B] text-[#8B2D1A]'}`
+  }, parseMsg.type === 'ok' ? /*#__PURE__*/React.createElement(Check, {
+    size: 14,
+    className: "mt-0.5 flex-shrink-0"
+  }) : /*#__PURE__*/React.createElement(AlertTriangle, {
+    size: 14,
+    className: "mt-0.5 flex-shrink-0"
+  }), /*#__PURE__*/React.createElement("div", null, parseMsg.text)), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 px-3 py-2.5 bg-[#FBFAF7] border border-[#E8E4D8] rounded-sm text-xs font-body text-[#52605A] flex items-start gap-2"
+  }, /*#__PURE__*/React.createElement(Info, {
+    size: 12,
+    className: "flex-shrink-0 mt-0.5"
+  }), /*#__PURE__*/React.createElement("div", null, "The parser captures each designation's flag, nearest distance, and every named receptor with its individual distance and bearing — these exact distances flow into the rationale text (e.g. \"the nearest SSSI (Epping Forest SSSI) lies approximately 1.1 km to the south-east\"). Flood zones come through as \"unknown\" since they load from the EA WMS layer, not the table — set them manually in section 2."))), /*#__PURE__*/React.createElement(Section, {
+    title: "2. Site sensitivities",
+    subtitle: "Edit anything the parser got wrong, or fill in manually. The rationale reacts live to these flags and receptor distances.",
+    defaultOpen: true
+  }, /*#__PURE__*/React.createElement(SensitivitiesEditor, {
+    sensitivities: sensitivities,
+    onChange: setSensitivities
+  })), /*#__PURE__*/React.createElement(Section, {
+    title: "3. Development details",
+    subtitle: `Anything left blank shows as a yellow placeholder. Currently ${placeholderCount} placeholder${placeholderCount === 1 ? '' : 's'} unfilled.`,
+    defaultOpen: false
+  }, /*#__PURE__*/React.createElement(DevDetailsForm, {
+    dev: dev,
+    onChange: setDev
+  })), /*#__PURE__*/React.createElement(Section, {
+    title: "4. Supporting documents by topic",
+    subtitle: "Each topic lists the documents that will accompany the planning application. Leave a topic empty if no specialist assessment is being submitted — the rationale will read 'no formal assessment is considered necessary'.",
+    defaultOpen: false
+  }, /*#__PURE__*/React.createElement(TopicDocsEditor, {
+    topicDocs: topicDocs,
+    onChange: setTopicDocs
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline justify-between mb-4 mt-10 flex-wrap gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-body uppercase tracking-widest text-[#52605A]",
+    style: {
+      letterSpacing: '0.15em'
+    }
+  }, "Output"), /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-3xl text-[#0F1F1A] tracking-tight",
+    style: {
+      fontWeight: 400
+    }
+  }, "Scoping-out table")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Button, {
+    onClick: handleDownloadHTML,
+    variant: "secondary",
+    icon: downloadSuccess ? Check : Download
+  }, downloadSuccess ? 'Downloaded' : 'Download HTML'), /*#__PURE__*/React.createElement(Button, {
+    onClick: handleCopyAll,
+    variant: "primary",
+    icon: copySuccess ? Check : Copy
+  }, copySuccess ? 'Copied' : 'Copy table (Markdown)'))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, TOPICS.map(topic => {
+    const ts = topicState[topic.id] || {};
+    return /*#__PURE__*/React.createElement(TopicCard, {
+      key: topic.id,
+      topic: topic,
+      sens: sensitivities,
+      dev: effectiveDev,
+      docs: getDocs(topic.id),
+      customText: ts.customText,
+      onCustomTextChange: t => updateTopicState(topic.id, {
+        customText: t
+      }),
+      scopedIn: !!ts.scopedIn,
+      onScopedInChange: v => updateTopicState(topic.id, {
+        scopedIn: v
+      }),
+      onResetText: () => updateTopicState(topic.id, {
+        customText: null
+      })
+    });
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "mt-10"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mb-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-body uppercase tracking-widest text-[#52605A]",
+    style: {
+      letterSpacing: '0.15em'
+    }
+  }, "Consolidated view"), /*#__PURE__*/React.createElement("h2", {
+    className: "font-display text-3xl text-[#0F1F1A] tracking-tight",
+    style: {
+      fontWeight: 400
+    }
+  }, "All sections as a table"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[#52605A] mt-2 max-w-2xl font-body leading-relaxed"
+  }, "A single-table view of everything above — for scrolling review, screenshotting, or selecting and copying directly from the page. Use Download HTML for a self-contained file you can open in a browser or paste into Word.")), /*#__PURE__*/React.createElement(ConsolidatedTable, {
+    topics: TOPICS,
+    sensitivities: sensitivities,
+    dev: effectiveDev,
+    topicState: topicState,
+    getDocs: getDocs
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "mt-12 pt-6 border-t border-[#D9D4C7] text-xs font-body text-[#52605A] leading-relaxed max-w-3xl"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "mb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-[#0F1F1A]"
+  }, "A note on use:"), " this generator drafts screening-style rationale (the argument that a topic does not warrant assessment within an ES). All output is a starting point — the EIA practitioner remains responsible for confirming conclusions, particularly where on-site sensitivities are flagged. Everything runs locally in your browser; no data leaves the page and no tokens are used."), /*#__PURE__*/React.createElement("p", null, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-[#0F1F1A]"
+  }, "Placeholders"), " remain visible as yellow pills. Fill a Development Details field and every matching placeholder across the table updates live. The Copy and Download buttons convert unfilled placeholders to ", /*#__PURE__*/React.createElement("span", {
+    className: "font-mono"
+  }, "[bracketed]"), " markers (Markdown) or keep them as visible yellow pills (HTML).")))));
 }
 
 // ===========================
 // CONSOLIDATED TABLE
 // ===========================
 
-function ConsolidatedTable({ topics, sensitivities, dev, topicState, getDocs }) {
-  return (
-    <div className="bg-white border border-[#D9D4C7] rounded-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm font-body" style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr className="bg-[#F1EDE4] text-[#0F1F1A]">
-              <th className="text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase" style={{ letterSpacing: '0.04em', width: '22%' }}>Topic</th>
-              <th className="text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase" style={{ letterSpacing: '0.04em', width: '13%' }}>Conclusion</th>
-              <th className="text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase" style={{ letterSpacing: '0.04em', width: '18%' }}>Supporting documents</th>
-              <th className="text-left px-3 py-2 border-b border-[#D9D4C7] text-xs font-semibold uppercase" style={{ letterSpacing: '0.04em' }}>Rationale</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topics.map(t => {
-              const ts = topicState[t.id] || {};
-              const docs = getDocs(t.id);
-              const text = ts.customText != null ? ts.customText : t.template(sensitivities, dev, docs);
-              return (
-                <tr key={t.id} className="border-b border-[#E8E4D8] align-top hover:bg-[#FBFAF7]">
-                  <td className="px-3 py-3 border-r border-[#E8E4D8]">
-                    <div className="font-display text-[15px] text-[#0F1F1A] leading-tight" style={{ fontWeight: 500 }}>{t.name}</div>
-                    <div className="text-xs text-[#8B8472] italic mt-0.5">{t.category}</div>
-                  </td>
-                  <td className="px-3 py-3 border-r border-[#E8E4D8]">
-                    <span className={`inline-block px-2 py-0.5 text-[10px] font-medium uppercase rounded-sm border ${ts.scopedIn ? 'bg-[#FCE7E2] text-[#8B2D1A] border-[#E5A89B]' : (t.conclusion.toLowerCase().includes('beneficial') ? 'bg-[#E8EDE8] text-[#2F4A3A] border-[#9FB5A4]' : 'bg-[#F1EDE4] text-[#6B6354] border-[#C7BFAB]')}`} style={{ letterSpacing: '0.05em' }}>{ts.scopedIn ? 'Scoped in' : t.conclusion}</span>
-                  </td>
-                  <td className="px-3 py-3 border-r border-[#E8E4D8] text-xs">
-                    {docs.length === 0 ? <span className="text-[#8B8472] italic">— none —</span> : (
-                      <ul className="list-disc pl-4 space-y-0.5">
-                        {docs.map((d, i) => <li key={i}>{d}</li>)}
-                      </ul>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 leading-relaxed">{renderPlaceholderText(text, dev)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+function ConsolidatedTable({
+  topics,
+  sensitivities,
+  dev,
+  topicState,
+  getDocs
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-[#D9D4C7] rounded-sm overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm font-body",
+    style: {
+      borderCollapse: 'collapse'
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    className: "bg-[#F1EDE4] text-[#0F1F1A]"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase",
+    style: {
+      letterSpacing: '0.04em',
+      width: '22%'
+    }
+  }, "Topic"), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase",
+    style: {
+      letterSpacing: '0.04em',
+      width: '13%'
+    }
+  }, "Conclusion"), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2 border-b border-r border-[#D9D4C7] text-xs font-semibold uppercase",
+    style: {
+      letterSpacing: '0.04em',
+      width: '18%'
+    }
+  }, "Supporting documents"), /*#__PURE__*/React.createElement("th", {
+    className: "text-left px-3 py-2 border-b border-[#D9D4C7] text-xs font-semibold uppercase",
+    style: {
+      letterSpacing: '0.04em'
+    }
+  }, "Rationale"))), /*#__PURE__*/React.createElement("tbody", null, topics.map(t => {
+    const ts = topicState[t.id] || {};
+    const docs = getDocs(t.id);
+    const text = ts.customText != null ? ts.customText : t.template(sensitivities, dev, docs);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: t.id,
+      className: "border-b border-[#E8E4D8] align-top hover:bg-[#FBFAF7]"
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-3 border-r border-[#E8E4D8]"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-display text-[15px] text-[#0F1F1A] leading-tight",
+      style: {
+        fontWeight: 500
+      }
+    }, t.name), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-[#8B8472] italic mt-0.5"
+    }, t.category)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-3 border-r border-[#E8E4D8]"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: `inline-block px-2 py-0.5 text-[10px] font-medium uppercase rounded-sm border ${ts.scopedIn ? 'bg-[#FCE7E2] text-[#8B2D1A] border-[#E5A89B]' : t.conclusion.toLowerCase().includes('beneficial') ? 'bg-[#E8EDE8] text-[#2F4A3A] border-[#9FB5A4]' : 'bg-[#F1EDE4] text-[#6B6354] border-[#C7BFAB]'}`,
+      style: {
+        letterSpacing: '0.05em'
+      }
+    }, ts.scopedIn ? 'Scoped in' : t.conclusion)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-3 border-r border-[#E8E4D8] text-xs"
+    }, docs.length === 0 ? /*#__PURE__*/React.createElement("span", {
+      className: "text-[#8B8472] italic"
+    }, "— none —") : /*#__PURE__*/React.createElement("ul", {
+      className: "list-disc pl-4 space-y-0.5"
+    }, docs.map((d, i) => /*#__PURE__*/React.createElement("li", {
+      key: i
+    }, d)))), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-3 leading-relaxed"
+    }, renderPlaceholderText(text, dev)));
+  })))));
 }
-
-
-const _root = ReactDOM.createRoot(document.getElementById('root'));
-_root.render(<App />);
+    const _root = ReactDOM.createRoot(document.getElementById('root'));
+    _root.render(React.createElement(App));
+  } catch (err) {
+    console.error('EIA Screening Generator failed to mount:', err);
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error-detail').textContent = String(err && err.message || err);
+  }
+})();
 </script>
 </body>
 </html>
